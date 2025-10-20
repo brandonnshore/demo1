@@ -52,6 +52,33 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   const [priceQuote, setPriceQuote] = useState<any>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
 
+  // Calculate unit cost based on artwork
+  const calculateUnitCost = (): number => {
+    let unitCost = 12.98; // Base price
+
+    // Count how many print locations have artwork
+    const hasFrontArtwork = frontArtworks.length > 0;
+    const hasBackArtwork = backArtworks.length > 0;
+    const hasNeckLabel = neckArtwork !== null;
+
+    // Count print locations (front and back only)
+    const printLocations = [hasFrontArtwork, hasBackArtwork].filter(Boolean).length;
+
+    // Add $5 for second print location (front + back)
+    if (printLocations === 2) {
+      unitCost += 5.00;
+    }
+
+    // Add $1 for neck label (always, regardless of other artworks)
+    if (hasNeckLabel) {
+      unitCost += 1.00;
+    }
+
+    return unitCost;
+  };
+
+  const unitCost = calculateUnitCost();
+
   // Get unique colors and sizes (add Navy if not present)
   const dbColors = [...new Set(variants.map((v) => v.color))];
   const colors = dbColors.includes('Navy') ? dbColors : [...dbColors, 'Navy'];
@@ -284,12 +311,10 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
       variantColor: selectedColor,
       variantSize: selectedSize,
       quantity,
-      unitPrice: 12.98,
+      unitPrice: unitCost,
       customization: {
         method: selectedMethod || 'screen_print',
         placements,
-        artworkUrl: uploadedArtworkUrl,
-        artworkPosition,
       },
     };
 
@@ -300,8 +325,26 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
 
   const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
   const [colorSectionOpen, setColorSectionOpen] = useState(true);
-  const [artworkSectionOpen, setArtworkSectionOpen] = useState(false);
+  const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
+  const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
   const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
+
+  // Auto-open appropriate section when view changes
+  useEffect(() => {
+    if (view === 'neck') {
+      setNeckLabelSectionOpen(true);
+      setFrontArtworkSectionOpen(false);
+      setBackArtworkSectionOpen(false);
+    } else if (view === 'front') {
+      setFrontArtworkSectionOpen(true);
+      setBackArtworkSectionOpen(false);
+      setNeckLabelSectionOpen(false);
+    } else if (view === 'back') {
+      setBackArtworkSectionOpen(true);
+      setFrontArtworkSectionOpen(false);
+      setNeckLabelSectionOpen(false);
+    }
+  }, [view]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -376,16 +419,6 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
               Front
             </button>
             <button
-              onClick={() => setView('neck')}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'neck'
-                  ? 'bg-black text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Neck
-            </button>
-            <button
               onClick={() => setView('back')}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'back'
@@ -394,6 +427,16 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
               }`}
             >
               Back
+            </button>
+            <button
+              onClick={() => setView('neck')}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                view === 'neck'
+                  ? 'bg-black text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Neck
             </button>
           </div>
         </div>
@@ -456,66 +499,67 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
               )}
             </div>
 
-            {/* Artwork Section */}
+            {/* Front Artwork Section */}
             <div className="border-t border-gray-200 pt-5 pb-4">
               <button
-                onClick={() => setArtworkSectionOpen(!artworkSectionOpen)}
+                onClick={() => setFrontArtworkSectionOpen(!frontArtworkSectionOpen)}
                 className="w-full flex items-center justify-between mb-4 group"
               >
-                <h3 className="text-sm font-semibold">Artwork</h3>
+                <h3 className="text-sm font-semibold">Front Artwork</h3>
                 <div className="flex items-center gap-3">
                   <span className="w-5 h-5 rounded-full bg-black text-white text-xs flex items-center justify-center">
-                    +
+                    {frontArtworks.length}
                   </span>
                   <span className="text-gray-400 group-hover:text-gray-600">
-                    {artworkSectionOpen ? '−' : '+'}
+                    {frontArtworkSectionOpen ? '−' : '+'}
                   </span>
                 </div>
               </button>
 
-              {artworkSectionOpen && (
+              {frontArtworkSectionOpen && (
                 <div className="space-y-4">
-                  {getCurrentArtworks().length === 0 || (view === 'front' && frontArtworks.length < 4) || (view === 'back' && backArtworks.length < 4) || view === 'neck' ? (
-                    <div className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors">
+                  {frontArtworks.length < 4 && (
+                    <div
+                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
+                      onClick={() => setView('front')}
+                    >
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/svg+xml,application/pdf"
-                        onChange={handleFileUpload}
+                        onChange={(e) => {
+                          setView('front');
+                          handleFileUpload(e);
+                        }}
                         className="hidden"
-                        id="artwork-upload"
+                        id="front-artwork-upload"
+                        onClick={(e) => e.stopPropagation()}
                       />
-                      <label htmlFor="artwork-upload" className="cursor-pointer">
+                      <label htmlFor="front-artwork-upload" className="cursor-pointer">
                         <Upload className="mx-auto mb-2 text-gray-300" size={28} />
                         <p className="text-xs text-gray-600 font-medium">
-                          Upload artwork {view === 'neck' ? '(1 max)' : '(up to 4)'}
+                          Upload front artwork (up to 4)
                         </p>
                         <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
                       </label>
                     </div>
-                  ) : null}
+                  )}
 
-                  {/* Display uploaded artworks for current view */}
-                  {getCurrentArtworks().map((artwork, index) => (
+                  {/* Display uploaded front artworks */}
+                  {frontArtworks.map((artwork, index) => (
                     <div key={index} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-10 h-10 bg-white border border-gray-200 rounded flex items-center justify-center overflow-hidden">
-                            <img src={artwork.url} alt="Artwork" className="w-full h-full object-contain" />
+                            <img src={artwork.url} alt="Front Artwork" className="w-full h-full object-contain" />
                           </div>
                           <div>
                             <p className="text-xs font-medium">Artwork {index + 1}</p>
-                            <p className="text-xs text-gray-500">Drag to position on canvas</p>
+                            <p className="text-xs text-gray-500">Click front view to edit</p>
                           </div>
                         </div>
                         <button
                           onClick={() => {
-                            if (view === 'front') {
-                              setFrontArtworks(frontArtworks.filter((_, i) => i !== index));
-                            } else if (view === 'neck') {
-                              setNeckArtwork(null);
-                            } else if (view === 'back') {
-                              setBackArtworks(backArtworks.filter((_, i) => i !== index));
-                            }
+                            setFrontArtworks(frontArtworks.filter((_, i) => i !== index));
                           }}
                           className="text-xs text-red-600 hover:text-red-700"
                         >
@@ -524,74 +568,79 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
 
-                  {/* Print Method - Button Style */}
-                  <div>
-                    <label className="block text-xs font-medium mb-3 text-gray-700">Print method</label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {decorationMethods.map((method) => (
+            {/* Back Artwork Section */}
+            <div className="border-t border-gray-200 pt-5 pb-4">
+              <button
+                onClick={() => setBackArtworkSectionOpen(!backArtworkSectionOpen)}
+                className="w-full flex items-center justify-between mb-4 group"
+              >
+                <h3 className="text-sm font-semibold">Back Artwork</h3>
+                <div className="flex items-center gap-3">
+                  <span className="w-5 h-5 rounded-full bg-black text-white text-xs flex items-center justify-center">
+                    {backArtworks.length}
+                  </span>
+                  <span className="text-gray-400 group-hover:text-gray-600">
+                    {backArtworkSectionOpen ? '−' : '+'}
+                  </span>
+                </div>
+              </button>
+
+              {backArtworkSectionOpen && (
+                <div className="space-y-4">
+                  {backArtworks.length < 4 && (
+                    <div
+                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
+                      onClick={() => setView('back')}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,application/pdf"
+                        onChange={(e) => {
+                          setView('back');
+                          handleFileUpload(e);
+                        }}
+                        className="hidden"
+                        id="back-artwork-upload"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <label htmlFor="back-artwork-upload" className="cursor-pointer">
+                        <Upload className="mx-auto mb-2 text-gray-300" size={28} />
+                        <p className="text-xs text-gray-600 font-medium">
+                          Upload back artwork (up to 4)
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Display uploaded back artworks */}
+                  {backArtworks.map((artwork, index) => (
+                    <div key={index} className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 bg-white border border-gray-200 rounded flex items-center justify-center overflow-hidden">
+                            <img src={artwork.url} alt="Back Artwork" className="w-full h-full object-contain" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium">Artwork {index + 1}</p>
+                            <p className="text-xs text-gray-500">Click back view to edit</p>
+                          </div>
+                        </div>
                         <button
-                          key={method.id}
-                          onClick={() => setSelectedMethod(method.name)}
-                          className={`px-4 py-3 text-xs font-medium rounded-md border-2 transition-all text-left ${
-                            selectedMethod === method.name
-                              ? 'border-black bg-gray-50'
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
+                          onClick={() => {
+                            setBackArtworks(backArtworks.filter((_, i) => i !== index));
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700"
                         >
-                          <div className="font-semibold">{method.display_name}</div>
-                          <div className="text-gray-500 text-xs mt-0.5">{method.description}</div>
+                          Remove
                         </button>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Placement Location - Button Grid */}
-                  <div>
-                    <label className="block text-xs font-medium mb-3 text-gray-700">Print location</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setCurrentPlacement('front_chest')}
-                        className={`px-3 py-2.5 text-xs font-medium rounded-md border-2 transition-all ${
-                          currentPlacement === 'front_chest'
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        Front Chest
-                      </button>
-                      <button
-                        onClick={() => setCurrentPlacement('back_center')}
-                        className={`px-3 py-2.5 text-xs font-medium rounded-md border-2 transition-all ${
-                          currentPlacement === 'back_center'
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        Back Center
-                      </button>
-                      <button
-                        onClick={() => setCurrentPlacement('sleeve_left')}
-                        className={`px-3 py-2.5 text-xs font-medium rounded-md border-2 transition-all ${
-                          currentPlacement === 'sleeve_left'
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        Left Sleeve
-                      </button>
-                      <button
-                        onClick={() => setCurrentPlacement('sleeve_right')}
-                        className={`px-3 py-2.5 text-xs font-medium rounded-md border-2 transition-all ${
-                          currentPlacement === 'sleeve_right'
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        Right Sleeve
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -605,13 +654,66 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
                 <h3 className="text-sm font-semibold">Neck Label</h3>
                 <div className="flex items-center gap-3">
                   <span className="w-5 h-5 rounded-full bg-black text-white text-xs flex items-center justify-center">
-                    +
+                    {neckArtwork ? '1' : '0'}
                   </span>
                   <span className="text-gray-400 group-hover:text-gray-600">
                     {neckLabelSectionOpen ? '−' : '+'}
                   </span>
                 </div>
               </button>
+
+              {neckLabelSectionOpen && (
+                <div className="space-y-4">
+                  {!neckArtwork && (
+                    <div
+                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
+                      onClick={() => setView('neck')}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,application/pdf"
+                        onChange={(e) => {
+                          setView('neck');
+                          handleFileUpload(e);
+                        }}
+                        className="hidden"
+                        id="neck-label-upload"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <label htmlFor="neck-label-upload" className="cursor-pointer">
+                        <Upload className="mx-auto mb-2 text-gray-300" size={28} />
+                        <p className="text-xs text-gray-600 font-medium">
+                          Upload neck label
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Display uploaded neck label */}
+                  {neckArtwork && (
+                    <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 bg-white border border-gray-200 rounded flex items-center justify-center overflow-hidden">
+                            <img src={neckArtwork.url} alt="Neck Label" className="w-full h-full object-contain" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium">Neck Label</p>
+                            <p className="text-xs text-gray-500">Click neck view to edit</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setNeckArtwork(null)}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Size Selection */}
@@ -635,31 +737,36 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
             </div>
 
             {/* Quantity, Price, Delivery */}
-            <div className="border-t border-gray-200 pt-5 pb-4 grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">Unit cost</label>
-                <div className="text-sm font-semibold">
-                  {priceQuote ? `$${(priceQuote.subtotal / quantity).toFixed(2)}` : '$0.00'}
+            <div className="border-t border-gray-200 pt-5 pb-4">
+              <div className={`grid ${quantity >= 2 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-gray-900"
+                  />
                 </div>
-                {priceQuote && (
-                  <div className="text-xs text-gray-400 line-through">
-                    ${(Number(selectedVariant?.base_price || 0) + 5).toFixed(2)}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Unit cost</label>
+                  <div className="text-sm font-semibold">
+                    ${unitCost.toFixed(2)}
+                  </div>
+                </div>
+                {quantity >= 2 && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-2">Total cost</label>
+                    <div className="text-sm font-semibold">
+                      ${(unitCost * quantity).toFixed(2)}
+                    </div>
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">Delivery</label>
-                <div className="text-xs font-semibold">4 Nov</div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Delivery</label>
+                  <div className="text-xs font-semibold">4 Nov</div>
+                </div>
               </div>
             </div>
 

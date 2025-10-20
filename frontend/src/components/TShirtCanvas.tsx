@@ -20,9 +20,23 @@ const TShirtCanvas = forwardRef(({
   const [tshirtImage, setTshirtImage] = useState<HTMLImageElement | null>(null);
   const [artworkImages, setArtworkImages] = useState<HTMLImageElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const imageRefs = useRef<(Konva.Image | null)[]>([]);
   const trRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
+
+  // Preload and cache all t-shirt images
+  const cachedImages = useRef<{
+    front: HTMLImageElement | null;
+    back: HTMLImageElement | null;
+    neck: HTMLImageElement | null;
+  }>({
+    front: null,
+    back: null,
+    neck: null,
+  });
+
+  const activeView = useRef<'front' | 'back' | 'neck'>('front');
 
   // Load t-shirt image and calculate proper dimensions
   const [tshirtDimensions, setTshirtDimensions] = useState({ width: 550, height: 650 });
@@ -47,60 +61,103 @@ const TShirtCanvas = forwardRef(({
     }
   }));
 
-  // Load t-shirt image based on current view
+  // Preload all images on mount
   useEffect(() => {
-    const loadImage = () => {
-      const img = new window.Image();
-
-      // Set image source based on view
-      if (view === 'neck') {
-        img.src = '/assets/neck-tshirt.jpeg';
-      } else {
-        img.src = '/assets/blank-tshirt.png';
-      }
-
-      img.crossOrigin = 'anonymous';
-
-      img.onload = () => {
-        // Calculate dimensions based on view
-        if (view === 'neck') {
-          const aspectRatio = img.width / img.height;
-          const containerWidth = 1600;
-          const containerHeight = 950;
-
-          let width = containerWidth;
-          let height = width / aspectRatio;
-
-          if (height < containerHeight) {
-            height = containerHeight;
-            width = height * aspectRatio;
-          }
-
-          setTshirtDimensions({ width, height });
-        } else {
-          const containerMaxWidth = 600;
-          const containerMaxHeight = 700;
-          const aspectRatio = img.width / img.height;
-
-          let width = containerMaxWidth;
-          let height = containerMaxWidth / aspectRatio;
-
-          if (height > containerMaxHeight) {
-            height = containerMaxHeight;
-            width = containerMaxHeight * aspectRatio;
-          }
-
-          setTshirtDimensions({ width, height });
-        }
-
-        setTshirtImage(img);
-      };
+    const preloadImage = (src: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve) => {
+        const img = new window.Image();
+        img.src = src;
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(img); // Still resolve on error
+      });
     };
 
-    loadImage();
+    // Preload all views immediately
+    Promise.all([
+      preloadImage('/assets/blank-tshirt.png'),
+      preloadImage('/assets/back-tshirt.jpeg'),
+      preloadImage('/assets/neck-tshirt.jpeg'),
+    ]).then(([frontImg, backImg, neckImg]) => {
+      cachedImages.current.front = frontImg;
+      cachedImages.current.back = backImg;
+      cachedImages.current.neck = neckImg;
+
+      // Set initial front view
+      const aspectRatio = frontImg.width / frontImg.height;
+      const containerMaxWidth = 600;
+      const containerMaxHeight = 700;
+
+      let width = containerMaxWidth;
+      let height = containerMaxWidth / aspectRatio;
+
+      if (height > containerMaxHeight) {
+        height = containerMaxHeight;
+        width = containerMaxHeight * aspectRatio;
+      }
+
+      setTshirtDimensions({ width, height });
+      setTshirtImage(frontImg);
+    });
+  }, []);
+
+  // Instant view switching - no transition
+  useEffect(() => {
+    if (view === activeView.current) return;
+
+    const nextImg = view === 'neck'
+      ? cachedImages.current.neck
+      : view === 'back'
+      ? cachedImages.current.back
+      : cachedImages.current.front;
+
+    if (!nextImg) return;
+
+    // Calculate dimensions for new view
+    if (view === 'neck') {
+      const aspectRatio = nextImg.width / nextImg.height;
+      const containerWidth = 1600;
+      const containerHeight = 950;
+
+      let width = containerWidth;
+      let height = width / aspectRatio;
+
+      if (height < containerHeight) {
+        height = containerHeight;
+        width = height * aspectRatio;
+      }
+
+      setTshirtDimensions({ width, height });
+    } else {
+      const containerMaxWidth = 600;
+      const containerMaxHeight = 700;
+      const aspectRatio = nextImg.width / nextImg.height;
+
+      let width = containerMaxWidth;
+      let height = containerMaxWidth / aspectRatio;
+
+      if (height > containerMaxHeight) {
+        height = containerMaxHeight;
+        width = containerMaxHeight * aspectRatio;
+      }
+
+      if (view === 'back') {
+        width = width * 1.1;
+        height = height * 1.1;
+      }
+
+      setTshirtDimensions({ width, height });
+    }
+
+    // Instant swap - no animation
+    setTshirtImage(nextImg);
+    activeView.current = view;
   }, [view]);
 
-  // Load all artworks
+  // Cache for loaded artwork images by URL
+  const artworkImageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Load all artworks with caching
   useEffect(() => {
     if (artworks.length === 0) {
       setArtworkImages([]);
@@ -111,11 +168,21 @@ const TShirtCanvas = forwardRef(({
 
     const loadNewArtworks = async () => {
       const promises = artworks.map((artwork) => {
+        // Check cache first
+        const cached = artworkImageCache.current.get(artwork.url);
+        if (cached) {
+          return Promise.resolve(cached);
+        }
+
+        // Load new image and cache it
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const image = new window.Image();
           image.src = artwork.url;
           image.crossOrigin = 'anonymous';
-          image.onload = () => resolve(image);
+          image.onload = () => {
+            artworkImageCache.current.set(artwork.url, image);
+            resolve(image);
+          };
           image.onerror = reject;
         });
       });
@@ -218,7 +285,6 @@ const TShirtCanvas = forwardRef(({
               height={tshirtDimensions.height}
               onClick={() => setSelectedId(null)}
               onTap={() => setSelectedId(null)}
-              // For neck view, crop to fill the canvas
               {...(view === 'neck' ? {
                 crop: {
                   x: 0,
@@ -252,8 +318,8 @@ const TShirtCanvas = forwardRef(({
                 <KonvaImage
                   ref={(el) => { imageRefs.current[index] = el; }}
                   image={artworkImg}
-                  x={artwork.position?.x ?? (200 + index * 20)}
-                  y={artwork.position?.y ?? (250 + index * 20)}
+                  x={artwork.position?.x ?? (view === 'neck' ? 750 : 200 + index * 20)}
+                  y={artwork.position?.y ?? (view === 'neck' ? 500 : 250 + index * 20)}
                   width={width}
                   height={height}
                   scaleX={artwork.position?.scaleX ?? 1}
@@ -261,13 +327,26 @@ const TShirtCanvas = forwardRef(({
                   rotation={artwork.position?.rotation ?? 0}
                   draggable
                 dragBoundFunc={(pos) => {
-                  // Define the t-shirt boundaries (approximate area where shirt is visible)
-                  const shirtBounds = {
-                    minX: 80,
-                    maxX: 470,
-                    minY: 100,
-                    maxY: 550
-                  };
+                  // Define boundaries based on view
+                  let shirtBounds;
+
+                  if (view === 'neck') {
+                    // Neck label area bounds (red rectangle in your screenshot)
+                    shirtBounds = {
+                      minX: 520,
+                      maxX: 1080,
+                      minY: 560,
+                      maxY: 710
+                    };
+                  } else {
+                    // Front/Back t-shirt boundaries
+                    shirtBounds = {
+                      minX: 80,
+                      maxX: 470,
+                      minY: 100,
+                      maxY: 550
+                    };
+                  }
 
                   // Get current image dimensions
                   const node = imageRefs.current[index];
@@ -279,7 +358,7 @@ const TShirtCanvas = forwardRef(({
                   const scaledWidth = imageWidth * scaleX;
                   const scaledHeight = imageHeight * scaleY;
 
-                  // Constrain position to keep artwork within shirt bounds
+                  // Constrain position to keep artwork within bounds
                   let newX = pos.x;
                   let newY = pos.y;
 

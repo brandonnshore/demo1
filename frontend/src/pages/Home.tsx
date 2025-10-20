@@ -6,14 +6,12 @@ import { Product } from '../types';
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [styleFilter, setStyleFilter] = useState('All styles');
-  const [fitFilter, setFitFilter] = useState('All fits');
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const data = await productAPI.getAll();
-        setProducts(data.slice(0, 4)); // Show only first 4 products
+        setProducts(data.slice(0, 6)); // Show first 6 products for stacking
       } catch (err) {
         console.error('Failed to load products:', err);
       } finally {
@@ -26,91 +24,109 @@ export default function Home() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Main Hero Section - Assembly Style */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-8 py-16 lg:py-24">
-        <div className="grid lg:grid-cols-[1fr_1.2fr] gap-16 items-start">
+      {/* Hero Section */}
+      <section className="h-screen flex items-center">
+        <div className="w-full grid lg:grid-cols-2 gap-0">
           {/* Left: Hero Text */}
-          <div className="pt-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-6">Get started</p>
-            <h1 className="text-5xl lg:text-6xl font-bold leading-tight mb-8">
-              Order your product today
-            </h1>
-            <p className="text-base text-gray-600 leading-relaxed max-w-md">
-              Our garments are classic unisex fits all made in Portugal with 100% organic cotton.
-              Order a sample to try before you buy, and design your full order in the Assembly Studio.
-            </p>
-          </div>
-
-          {/* Right: Product Cards */}
-          <div>
-            {/* Filter Dropdowns */}
-            <div className="flex gap-3 mb-8">
-              <div className="relative flex-1">
-                <select
-                  value={styleFilter}
-                  onChange={(e) => setStyleFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-sm appearance-none cursor-pointer focus:outline-none focus:border-gray-900"
+          <div className="flex items-center justify-center px-12 lg:px-20">
+            <div className="max-w-lg">
+              <h1 className="text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                Create and sell premium custom clothes easily
+              </h1>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                Design, customize, and order high-quality apparel with our intuitive customization studio.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/products"
+                  className="px-6 py-3 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors text-center"
                 >
-                  <option>Style</option>
-                  <option>All</option>
-                  <option>T-Shirts</option>
-                  <option>Hoodies</option>
-                  <option>Accessories</option>
-                </select>
+                  Start Designing
+                </Link>
+                <Link
+                  to="/products"
+                  className="px-6 py-3 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors text-center"
+                >
+                  View Products
+                </Link>
               </div>
-              <div className="relative flex-1">
-                <select
-                  value={fitFilter}
-                  onChange={(e) => setFitFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-sm appearance-none cursor-pointer focus:outline-none focus:border-gray-900"
-                >
-                  <option>Fit</option>
-                  <option>All</option>
-                  <option>Regular</option>
-                  <option>Slim</option>
-                  <option>Oversized</option>
-                </select>
+
+              {/* Feature badges */}
+              <div className="mt-10 grid grid-cols-2 gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-gray-600">No MOQ</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-gray-600">High quality DTG</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-gray-600">Fast turnaround</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-gray-600">100% organic cotton</span>
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Product Grid */}
+          {/* Right: Stacked Product Images */}
+          <div className="relative h-screen overflow-hidden bg-gray-50">
             {loading ? (
-              <div className="text-center py-20">
+              <div className="flex items-center justify-center h-full">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6">
-                {products.map((product) => (
+              <div className="absolute inset-0 flex flex-col justify-center py-8">
+                {products.map((product, index) => (
                   <Link
                     key={product.id}
                     to={`/products/${product.slug}`}
-                    className="group block bg-gray-50 rounded-lg overflow-hidden hover:bg-gray-100 transition-all"
+                    className="block relative"
+                    style={{
+                      transform: `rotate(${(index - 2.5) * 3}deg) translateY(${(index - 2.5) * -10}px)`,
+                      zIndex: products.length - index,
+                      marginBottom: index < products.length - 1 ? '-280px' : '0'
+                    }}
                   >
-                    <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden p-8">
-                      {product.images && product.images.length > 0 ? (
-                        <img
-                          src={product.images[0]}
-                          alt={product.title}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            e.currentTarget.src = '/assets/blank-tshirt.png';
-                          }}
-                        />
-                      ) : (
-                        <img
-                          src="/assets/blank-tshirt.png"
-                          alt={product.title}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        />
-                      )}
-                    </div>
-                    <div className="p-4 text-center">
-                      <h3 className="font-medium text-sm mb-1">{product.title}</h3>
-                      {product.variants && product.variants.length > 0 && (
-                        <p className="text-xs text-gray-500">
-                          from {Number(product.variants[0].base_price).toFixed(2)}€
-                        </p>
-                      )}
+                    <div className="mx-auto w-[400px] bg-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 hover:z-50 rounded-lg overflow-hidden">
+                      <div className="aspect-[3/4] bg-white flex items-center justify-center p-8">
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={product.images[0]}
+                            alt={product.title}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = '/assets/blank-tshirt.png';
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src="/assets/blank-tshirt.png"
+                            alt={product.title}
+                            className="w-full h-full object-contain"
+                          />
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
