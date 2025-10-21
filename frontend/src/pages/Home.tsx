@@ -6,12 +6,13 @@ import { Product } from '../types';
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const data = await productAPI.getAll();
-        setProducts(data.slice(0, 6)); // Show first 6 products for stacking
+        setProducts(data);
       } catch (err) {
         console.error('Failed to load products:', err);
       } finally {
@@ -21,6 +22,9 @@ export default function Home() {
 
     fetchProducts();
   }, []);
+
+  const categories = ['T-Shirts', 'Hoodies', 'Sportswear', 'Hats & Bags', 'Women'];
+  const productColors = ['#000000', '#1e3a8a', '#6b7280', '#ffffff', '#7c2d12'];
 
   return (
     <div className="bg-white min-h-screen">
@@ -97,7 +101,7 @@ export default function Home() {
               </div>
             ) : (
               <div className="absolute inset-0 flex flex-col justify-center py-8">
-                {products.map((product, index) => (
+                {products.slice(0, 6).map((product, index) => (
                   <Link
                     key={product.id}
                     to={`/products/${product.slug}`}
@@ -133,6 +137,106 @@ export default function Home() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Product Showcase Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              Beautiful bestselling blanks,<br />ready for your vision
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto mb-8">
+              Specially curated high-quality garments perfect for your custom designs. Start with our premium basics and bring your creative vision to life.
+            </p>
+
+            {/* Category Filters */}
+            <div className="flex flex-wrap justify-center gap-2 mb-4">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-black text-white'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  selectedCategory === 'All'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                All products
+              </button>
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-12">
+              {products.slice(0, 5).map((product) => (
+                <Link
+                  key={product.id}
+                  to={`/products/${product.slug}`}
+                  className="group block"
+                >
+                  {/* Product Image */}
+                  <div className="mb-4 overflow-hidden -mx-4">
+                    <div className="aspect-[4/5] flex items-center justify-center">
+                      {product.images && product.images.length > 0 ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.title}
+                          className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-500"
+                          style={{ imageRendering: 'high-quality' }}
+                          onError={(e) => {
+                            e.currentTarget.src = '/assets/blank-tshirt.png';
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src="/assets/blank-tshirt.png"
+                          alt={product.title}
+                          className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-500"
+                          style={{ imageRendering: 'high-quality' }}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Color dots */}
+                  <div className="flex justify-center gap-1.5 mb-2">
+                    {productColors.map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-3 h-3 rounded-full border border-gray-300"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Product info */}
+                  <div className="text-center">
+                    <p className="text-sm font-medium mb-1">{product.title}</p>
+                    <p className="text-sm text-gray-600">from $12.98</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

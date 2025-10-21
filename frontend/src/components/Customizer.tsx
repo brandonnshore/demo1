@@ -363,15 +363,18 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
 
           {/* Download Button and Price - Right */}
           <div className="ml-auto flex items-center gap-4">
-            {currentArtwork && (
-              <button
-                onClick={handleDownloadDesign}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-md hover:bg-gray-800 transition-colors"
-              >
-                <ArrowDownToLine size={14} />
-                Download
-              </button>
-            )}
+            <button
+              onClick={handleDownloadDesign}
+              disabled={!currentArtwork}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                currentArtwork
+                  ? 'bg-black text-white hover:bg-gray-800'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <ArrowDownToLine size={14} />
+              Download
+            </button>
             <div className="text-sm font-normal">
               from ${(12.98).toFixed(2)}
             </div>
