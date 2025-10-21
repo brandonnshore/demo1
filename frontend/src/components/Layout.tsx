@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, User } from 'lucide-react';
 import { useCartStore } from '../stores/cartStore';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const cartItemCount = useCartStore((state) => state.items.length);
   const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
 
   // Hide header on product detail/customizer pages
   const hideHeader = location.pathname.startsWith('/products/') && location.pathname !== '/products';
@@ -50,6 +52,22 @@ export default function Layout({ children }: LayoutProps) {
                 </span>
               )}
             </Link>
+            {isAuthenticated ? (
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-2 text-sm text-gray-900 hover:text-gray-600 transition-colors"
+              >
+                <User size={18} />
+                <span className="hidden sm:inline">{user?.name}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="text-sm text-gray-900 hover:text-gray-600 transition-colors"
+              >
+                Login
+              </Link>
+            )}
             <Link
               to="/products"
               className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors"

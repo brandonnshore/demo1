@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Product, Variant, DecorationMethod, Placement } from '../types';
-import { priceAPI, uploadAPI } from '../services/api';
+import { priceAPI, uploadAPI, designAPI } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
-import { useNavigate, Link } from 'react-router-dom';
-import { Upload, Type, Palette, Download, ArrowDownToLine } from 'lucide-react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { Upload, Type, Palette, Download, ArrowDownToLine, Save } from 'lucide-react';
 import TShirtCanvas from './TShirtCanvas';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CustomizerProps {
   product: Product;
@@ -16,6 +17,9 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
   const canvasRef = useRef<any>(null);
+  const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
 
   // Selection state
   const [selectedColor, setSelectedColor] = useState('');
@@ -94,6 +98,52 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
       setSelectedVariant(variant || null);
     }
   }, [selectedColor, selectedSize, variants]);
+
+  // Load design from URL param if present
+  useEffect(() => {
+    const designId = searchParams.get('designId');
+    if (designId && isAuthenticated) {
+      loadDesign(designId);
+    }
+  }, [searchParams, isAuthenticated]);
+
+  const loadDesign = async (designId: string) => {
+    try {
+      const design = await designAPI.getById(designId);
+      setLoadedDesignId(design.id);
+
+      // Load the design data
+      if (design.design_data) {
+        if (design.design_data.front) {
+          setFrontArtworks(design.design_data.front.map((pos: any) => ({
+            url: '', // We'll need to load actual URLs from artwork_ids
+            position: pos
+          })));
+        }
+        if (design.design_data.back) {
+          setBackArtworks(design.design_data.back.map((pos: any) => ({
+            url: '',
+            position: pos
+          })));
+        }
+        if (design.design_data.neck && design.design_data.neck.length > 0) {
+          setNeckArtwork({ url: '', position: design.design_data.neck[0] });
+        }
+      }
+
+      // Set color/size if available
+      if (design.variant_id) {
+        const variant = variants.find(v => v.id === design.variant_id);
+        if (variant) {
+          setSelectedColor(variant.color);
+          setSelectedSize(variant.size);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading design:', error);
+      alert('Failed to load design');
+    }
+  };
 
   // Calculate price when relevant fields change
   useEffect(() => {
@@ -290,6 +340,52 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
     }
   };
 
+  const handleSaveDesign = async () => {
+    if (!isAuthenticated) {
+      // Redirect to login, then back to this page
+      navigate('/login', { state: { from: window.location.pathname + window.location.search } });
+      return;
+    }
+
+    const designName = prompt('Enter a name for your design:');
+    if (!designName) return;
+
+    try {
+      const designData = {
+        front: frontArtworks.map(a => a.position),
+        back: backArtworks.map(a => a.position),
+        neck: neckArtwork ? [neckArtwork.position] : []
+      };
+
+      const artworkIds: string[] = []; // We'll implement this later with actual file IDs
+
+      if (loadedDesignId) {
+        // Update existing design
+        await designAPI.update(loadedDesignId, {
+          name: designName,
+          variantId: selectedVariant?.id,
+          designData,
+          artworkIds
+        });
+        alert('Design updated successfully!');
+      } else {
+        // Save new design
+        const saved = await designAPI.save({
+          name: designName,
+          productId: product.id,
+          variantId: selectedVariant?.id,
+          designData,
+          artworkIds
+        });
+        setLoadedDesignId(saved.id);
+        alert('Design saved successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error saving design:', error);
+      alert(error.response?.data?.message || 'Failed to save design. Please try again.');
+    }
+  };
+
   const handleAddToCart = () => {
     if (!selectedColor || !selectedSize) {
       alert('Please select a color and size');
@@ -361,8 +457,15 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
             Raspberry
           </Link>
 
-          {/* Download Button and Price - Right */}
+          {/* Save, Download Button and Price - Right */}
           <div className="ml-auto flex items-center gap-4">
+            <button
+              onClick={handleSaveDesign}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-white border border-gray-300 text-gray-900 hover:bg-gray-50"
+            >
+              <Save size={14} />
+              {loadedDesignId ? 'Update' : 'Save'}
+            </button>
             <button
               onClick={handleDownloadDesign}
               disabled={!currentArtwork}

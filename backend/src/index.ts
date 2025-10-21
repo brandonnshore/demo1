@@ -15,6 +15,7 @@ import uploadRoutes from './routes/uploads';
 import priceRoutes from './routes/pricing';
 import webhookRoutes from './routes/webhooks';
 import adminRoutes from './routes/admin';
+import designRoutes from './routes/designs';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -61,6 +62,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/price', priceRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/designs', designRoutes);
 
 // Error handling
 app.use(notFound);

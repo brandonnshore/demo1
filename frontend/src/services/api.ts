@@ -99,4 +99,32 @@ export const authAPI = {
   },
 };
 
+// Design API
+export const designAPI = {
+  save: async (designData: any) => {
+    const response = await api.post('/designs', designData);
+    return response.data.data.design;
+  },
+
+  getAll: async () => {
+    const response = await api.get('/designs');
+    return response.data.data.designs;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/designs/${id}`);
+    return response.data.data.design;
+  },
+
+  update: async (id: string, designData: any) => {
+    const response = await api.put(`/designs/${id}`, designData);
+    return response.data.data.design;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/designs/${id}`);
+    return response.data.data;
+  },
+};
+
 export default api;
