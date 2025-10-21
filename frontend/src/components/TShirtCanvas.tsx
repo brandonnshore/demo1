@@ -112,23 +112,59 @@ const TShirtCanvas = forwardRef(({
       cachedImages.current.back = backImg;
       cachedImages.current.neck = neckImg;
 
-      // Set initial front view
-      const aspectRatio = frontImg.width / frontImg.height;
-      const containerMaxWidth = 600;
-      const containerMaxHeight = 700;
+      // Use the current view instead of always defaulting to front
+      const currentViewImg = view === 'neck' ? neckImg : view === 'back' ? backImg : frontImg;
 
-      let width = containerMaxWidth;
-      let height = containerMaxWidth / aspectRatio;
+      // Calculate dimensions based on current view
+      if (view === 'neck') {
+        const aspectRatio = currentViewImg.width / currentViewImg.height;
+        const containerWidth = 1600;
+        const containerHeight = 950;
 
-      if (height > containerMaxHeight) {
-        height = containerMaxHeight;
-        width = containerMaxHeight * aspectRatio;
+        let width = containerWidth;
+        let height = width / aspectRatio;
+
+        if (height < containerHeight) {
+          height = containerHeight;
+          width = height * aspectRatio;
+        }
+
+        setTshirtDimensions({ width, height });
+      } else {
+        const aspectRatio = currentViewImg.width / currentViewImg.height;
+        const containerMaxWidth = 600;
+        const containerMaxHeight = 700;
+
+        let width = containerMaxWidth;
+        let height = containerMaxWidth / aspectRatio;
+
+        if (height > containerMaxHeight) {
+          height = containerMaxHeight;
+          width = containerMaxHeight * aspectRatio;
+        }
+
+        // Apply color-specific back view scaling to match front/back sizes
+        if (view === 'back') {
+          const colorLower = tshirtColor?.toLowerCase() || '';
+
+          if (colorLower === 'white' || colorLower === '') {
+            // White back needs scaling to match front size
+            width = width * 1.10;
+            height = height * 1.10;
+          } else if (colorLower === 'navy') {
+            // Navy needs slight scaling adjustment
+            width = width * 1.02;
+            height = height * 1.02;
+          }
+          // Black front and back are already same size - no scaling needed
+        }
+
+        setTshirtDimensions({ width, height });
       }
 
-      setTshirtDimensions({ width, height });
-      setTshirtImage(frontImg);
+      setTshirtImage(currentViewImg);
     });
-  }, [tshirtColor]);
+  }, [tshirtColor, view]);
 
   // Instant view switching - no transition
   useEffect(() => {
@@ -175,9 +211,9 @@ const TShirtCanvas = forwardRef(({
         const colorLower = tshirtColor?.toLowerCase() || '';
 
         if (colorLower === 'white' || colorLower === '') {
-          // White needs 1.1x scaling for back
-          width = width * 1.1;
-          height = height * 1.1;
+          // White back needs scaling to match front size
+          width = width * 1.10;
+          height = height * 1.10;
         } else if (colorLower === 'navy') {
           // Navy needs slight scaling adjustment
           width = width * 1.02;

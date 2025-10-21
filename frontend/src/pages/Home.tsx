@@ -9,18 +9,34 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await productAPI.getAll();
-        setProducts(data);
-      } catch (err) {
-        console.error('Failed to load products:', err);
-      } finally {
-        setLoading(false);
+    // Load mock data immediately for instant display
+    const mockProducts = [
+      {
+        id: '1',
+        title: 'Classic Cotton T-Shirt',
+        slug: 'classic-tee',
+        description: 'Premium 100% cotton t-shirt',
+        images: ['/assets/blank-tshirt.png'],
+        status: 'active' as const,
+        variants: [
+          { id: '1', product_id: '1', color: 'White', size: 'M', sku: 'TEE-WHT-M', base_price: 12.99, stock_level: 100 }
+        ]
       }
-    };
+    ];
 
-    fetchProducts();
+    setProducts(mockProducts);
+    setLoading(false);
+
+    // Try to fetch real data in background, but don't wait for it
+    productAPI.getAll()
+      .then(data => {
+        if (data && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .catch(err => {
+        console.log('Using mock data, API unavailable:', err.message);
+      });
   }, []);
 
   const categories = ['T-Shirts', 'Hoodies', 'Sportswear', 'Hats & Bags', 'Women'];
@@ -42,7 +58,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  to="/products"
+                  to="/products/classic-tee"
                   className="px-6 py-3 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors text-center"
                 >
                   Start Designing
@@ -93,49 +109,15 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right: Stacked Product Images */}
-          <div className="relative h-screen overflow-hidden bg-gray-50">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex flex-col justify-center py-8">
-                {products.slice(0, 6).map((product, index) => (
-                  <Link
-                    key={product.id}
-                    to={`/products/${product.slug}`}
-                    className="block relative"
-                    style={{
-                      transform: `rotate(${(index - 2.5) * 3}deg) translateY(${(index - 2.5) * -10}px)`,
-                      zIndex: products.length - index,
-                      marginBottom: index < products.length - 1 ? '-280px' : '0'
-                    }}
-                  >
-                    <div className="mx-auto w-[400px] bg-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 hover:z-50 rounded-lg overflow-hidden">
-                      <div className="aspect-[3/4] bg-white flex items-center justify-center p-8">
-                        {product.images && product.images.length > 0 ? (
-                          <img
-                            src={product.images[0]}
-                            alt={product.title}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              e.currentTarget.src = '/assets/blank-tshirt.png';
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src="/assets/blank-tshirt.png"
-                            alt={product.title}
-                            className="w-full h-full object-contain"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+          {/* Right: Product Image */}
+          <div className="relative h-screen overflow-hidden bg-white">
+            <div className="absolute inset-0 flex items-center justify-start -ml-10">
+              <img
+                src="/assets/pink-hoodie-model.jpeg"
+                alt="Product model"
+                className="h-full w-auto object-contain"
+              />
+            </div>
           </div>
         </div>
       </section>
