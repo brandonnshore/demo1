@@ -61,7 +61,34 @@ const TShirtCanvas = forwardRef(({
     }
   }));
 
-  // Preload all images on mount
+  // Helper function to get image paths based on color
+  const getImagePaths = (color: string) => {
+    const colorLower = color.toLowerCase();
+
+    // Map color to image files
+    if (colorLower === 'navy') {
+      return {
+        front: '/assets/navy-front.png',
+        back: '/assets/navy-back.png',
+        neck: '/assets/navy-neck.png',
+      };
+    } else if (colorLower === 'black') {
+      return {
+        front: '/assets/black-front.png',
+        back: '/assets/black-back.png',
+        neck: '/assets/black-neck.png',
+      };
+    } else {
+      // Default to white/blank
+      return {
+        front: '/assets/blank-tshirt.png',
+        back: '/assets/back-tshirt.jpeg',
+        neck: '/assets/neck-tshirt.jpeg',
+      };
+    }
+  };
+
+  // Preload all images on mount and when color changes
   useEffect(() => {
     const preloadImage = (src: string): Promise<HTMLImageElement> => {
       return new Promise((resolve) => {
@@ -73,11 +100,13 @@ const TShirtCanvas = forwardRef(({
       });
     };
 
-    // Preload all views immediately
+    const paths = getImagePaths(tshirtColor);
+
+    // Preload all views for current color
     Promise.all([
-      preloadImage('/assets/blank-tshirt.png'),
-      preloadImage('/assets/back-tshirt.jpeg'),
-      preloadImage('/assets/neck-tshirt.jpeg'),
+      preloadImage(paths.front),
+      preloadImage(paths.back),
+      preloadImage(paths.neck),
     ]).then(([frontImg, backImg, neckImg]) => {
       cachedImages.current.front = frontImg;
       cachedImages.current.back = backImg;
@@ -99,7 +128,7 @@ const TShirtCanvas = forwardRef(({
       setTshirtDimensions({ width, height });
       setTshirtImage(frontImg);
     });
-  }, []);
+  }, [tshirtColor]);
 
   // Instant view switching - no transition
   useEffect(() => {
@@ -141,9 +170,20 @@ const TShirtCanvas = forwardRef(({
         width = containerMaxHeight * aspectRatio;
       }
 
+      // Apply color-specific back view scaling to match front/back sizes
       if (view === 'back') {
-        width = width * 1.1;
-        height = height * 1.1;
+        const colorLower = tshirtColor?.toLowerCase() || '';
+
+        if (colorLower === 'white' || colorLower === '') {
+          // White needs 1.1x scaling for back
+          width = width * 1.1;
+          height = height * 1.1;
+        } else if (colorLower === 'navy') {
+          // Navy needs slight scaling adjustment
+          width = width * 1.02;
+          height = height * 1.02;
+        }
+        // Black front and back are already same size - no scaling needed
       }
 
       setTshirtDimensions({ width, height });
