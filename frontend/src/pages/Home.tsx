@@ -239,6 +239,75 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* Trusted By Section - Scrolling Logos */}
+      <section className="py-16 bg-white overflow-hidden relative">
+        {/* Fixed "Trusted by" text on the left with background and fade */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center">
+          <div className="bg-white px-8 py-4 relative z-10">
+            <h3 className="text-4xl font-bold">Trusted by</h3>
+          </div>
+          {/* Fade gradient extending to the right behind the text */}
+          <div className="absolute left-0 top-0 bottom-0 w-96 bg-gradient-to-r from-white via-white to-transparent pointer-events-none"></div>
+        </div>
+
+        {/* Scrolling logos container */}
+        <div className="relative">
+          <div className="flex animate-scroll">
+              {/* First set of logos */}
+              <div className="flex items-center gap-16 min-w-max pr-16">
+                <div className="text-2xl font-bold text-gray-800">UNIVERSAL<br/>MUSIC GROUP</div>
+                <div className="text-2xl font-bold text-gray-800" style={{ letterSpacing: '0.2em' }}>DINAMO</div>
+                <div className="text-2xl font-bold text-gray-800">believe.</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="text-xl font-medium text-gray-800">Index<br/>Ventures</div>
+                </div>
+              </div>
+
+              {/* Second set */}
+              <div className="flex items-center gap-16 min-w-max pr-16">
+                <div className="text-2xl font-bold text-gray-800">UNIVERSAL<br/>MUSIC GROUP</div>
+                <div className="text-2xl font-bold text-gray-800" style={{ letterSpacing: '0.2em' }}>DINAMO</div>
+                <div className="text-2xl font-bold text-gray-800">believe.</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="text-xl font-medium text-gray-800">Index<br/>Ventures</div>
+                </div>
+              </div>
+
+              {/* Third set */}
+              <div className="flex items-center gap-16 min-w-max pr-16">
+                <div className="text-2xl font-bold text-gray-800">UNIVERSAL<br/>MUSIC GROUP</div>
+                <div className="text-2xl font-bold text-gray-800" style={{ letterSpacing: '0.2em' }}>DINAMO</div>
+                <div className="text-2xl font-bold text-gray-800">believe.</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="text-xl font-medium text-gray-800">Index<br/>Ventures</div>
+                </div>
+              </div>
+
+              {/* Fourth set */}
+              <div className="flex items-center gap-16 min-w-max pr-16">
+                <div className="text-2xl font-bold text-gray-800">UNIVERSAL<br/>MUSIC GROUP</div>
+                <div className="text-2xl font-bold text-gray-800" style={{ letterSpacing: '0.2em' }}>DINAMO</div>
+                <div className="text-2xl font-bold text-gray-800">believe.</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="text-xl font-medium text-gray-800">Index<br/>Ventures</div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
     </div>
   );
 }
