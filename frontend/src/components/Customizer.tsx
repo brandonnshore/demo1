@@ -7,6 +7,7 @@ import { Upload, Type, Palette, Download, ArrowDownToLine, Save } from 'lucide-r
 import TShirtCanvas from './TShirtCanvas';
 import { useAuth } from '../contexts/AuthContext';
 import SaveDesignModal from './SaveDesignModal';
+import Toast from './Toast';
 
 interface CustomizerProps {
   product: Product;
@@ -17,10 +18,13 @@ interface CustomizerProps {
 export default function Customizer({ product, variants, decorationMethods }: CustomizerProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
+  const updateItem = useCartStore((state) => state.updateItem);
+  const getItem = useCartStore((state) => state.getItem);
   const canvasRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
 
   // Selection state
   const [selectedColor, setSelectedColor] = useState('');
@@ -60,6 +64,10 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   // Save design modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [savedDesignName, setSavedDesignName] = useState('');
+
+  // Toast notification state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Calculate unit cost based on artwork
   const calculateUnitCost = (): number => {
@@ -111,6 +119,34 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
       loadDesign(designId);
     }
   }, [searchParams, isAuthenticated]);
+
+  // Load cart item for editing if present
+  useEffect(() => {
+    const cartItemId = searchParams.get('editCartItem');
+    if (cartItemId) {
+      const cartItem = getItem(cartItemId);
+      if (cartItem) {
+        setEditingCartItemId(cartItemId);
+        // Load the design state from cart item
+        setSelectedColor(cartItem.variantColor);
+        setSelectedSize(cartItem.variantSize);
+        setQuantity(cartItem.quantity);
+
+        // Load customization data if available
+        if (cartItem.customization) {
+          if (cartItem.customization.frontArtworks) {
+            setFrontArtworks(cartItem.customization.frontArtworks);
+          }
+          if (cartItem.customization.backArtworks) {
+            setBackArtworks(cartItem.customization.backArtworks);
+          }
+          if (cartItem.customization.neckArtwork) {
+            setNeckArtwork(cartItem.customization.neckArtwork);
+          }
+        }
+      }
+    }
+  }, [searchParams, getItem]);
 
   const loadDesign = async (designId: string) => {
     try {
@@ -415,8 +451,19 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
 
   const handleAddToCart = () => {
     if (!selectedColor || !selectedSize) {
-      alert('Please select a color and size');
+      setToastMessage('Please select a color and size');
+      setShowToast(true);
       return;
+    }
+
+    // Capture mockup image from canvas
+    let mockupUrl;
+    try {
+      if (canvasRef.current && canvasRef.current.captureImage) {
+        mockupUrl = canvasRef.current.captureImage();
+      }
+    } catch (error) {
+      console.error('Error capturing mockup:', error);
     }
 
     // Use selected variant or create a temporary one for Navy
@@ -428,7 +475,7 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
     };
 
     const cartItem = {
-      id: `${variant.id}-${Date.now()}`,
+      id: editingCartItemId || `${variant.id}-${Date.now()}`,
       variantId: variant.id,
       productTitle: product.title,
       variantColor: selectedColor,
@@ -438,12 +485,29 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
       customization: {
         method: selectedMethod || 'screen_print',
         placements,
+        frontArtworks,
+        backArtworks,
+        neckArtwork,
       },
+      mockupUrl, // Include the mockup image
     };
 
-    addItem(cartItem);
-    alert('Added to cart!');
-    navigate('/cart');
+    if (editingCartItemId) {
+      // Update existing cart item
+      updateItem(editingCartItemId, cartItem);
+      setToastMessage('Cart item updated successfully!');
+    } else {
+      // Add new item to cart
+      addItem(cartItem);
+      setToastMessage('Added to cart successfully!');
+    }
+
+    setShowToast(true);
+
+    // Navigate to cart after showing toast
+    setTimeout(() => {
+      navigate('/cart');
+    }, 1500);
   };
 
   const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
@@ -484,26 +548,26 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
             Raspberry
           </Link>
 
-          {/* Save, Download Button and Price - Right */}
+          {/* Save Design Button and Price - Right */}
           <div className="ml-auto flex items-center gap-4">
-            <button
-              onClick={handleSaveDesign}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-white border border-gray-300 text-gray-900 hover:bg-gray-50"
-            >
-              <Save size={14} />
-              {loadedDesignId ? 'Update' : 'Save'}
-            </button>
             <button
               onClick={handleDownloadDesign}
               disabled={!currentArtwork}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              title="Download Design"
+              className={`p-2 rounded-md transition-colors ${
                 currentArtwork
-                  ? 'bg-black text-white hover:bg-gray-800'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-300 cursor-not-allowed'
               }`}
             >
-              <ArrowDownToLine size={14} />
-              Download
+              <ArrowDownToLine size={18} />
+            </button>
+            <button
+              onClick={handleSaveDesign}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md transition-colors bg-black text-white hover:bg-gray-800"
+            >
+              <Save size={14} />
+              {loadedDesignId ? 'Update Design' : 'Save Design'}
             </button>
             <div className="text-sm font-normal">
               from ${(12.98).toFixed(2)}
@@ -910,7 +974,7 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
                 disabled={!selectedColor || !selectedSize}
                 className="w-full py-3 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                Add to Cart
+                {editingCartItemId ? 'Update Cart' : 'Add to Cart'}
               </button>
             </div>
           </div>
@@ -925,6 +989,15 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
         isUpdating={!!loadedDesignId}
         currentName={savedDesignName}
       />
+
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type="success"
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </div>
   );
 }

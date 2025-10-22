@@ -10,6 +10,8 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import OrderTracking from './pages/OrderTracking';
 import About from './pages/About';
+import HowItWorks from './pages/HowItWorks';
+import CaseStudies from './pages/CaseStudies';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -29,6 +31,8 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders/:id" element={<OrderTracking />} />
               <Route path="/about" element={<About />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/case-studies" element={<CaseStudies />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/auth/callback" element={<AuthCallback />} />

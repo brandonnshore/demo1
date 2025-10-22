@@ -70,6 +70,17 @@ const TShirtCanvas = forwardRef(({
       }
       return null;
     },
+    captureImage: () => {
+      // Alias for getThumbnail - captures current canvas as image for cart mockup
+      if (stageRef.current) {
+        return stageRef.current.toDataURL({
+          pixelRatio: 2,
+          mimeType: 'image/png',
+          quality: 0.9
+        });
+      }
+      return null;
+    },
     getThumbnailBlob: async (): Promise<Blob | null> => {
       if (stageRef.current) {
         const dataUrl = stageRef.current.toDataURL({

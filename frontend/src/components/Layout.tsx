@@ -29,17 +29,17 @@ export default function Layout({ children }: LayoutProps) {
             <Link to="/products" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
               Products
             </Link>
-            <Link to="/about" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
+            <Link to="/how-it-works" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
               How it works
             </Link>
             <Link to="/about" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
               Pricing & Service
             </Link>
-            <Link to="/about" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
+            <Link to="/case-studies" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
               Case Studies
             </Link>
             <Link to="/about" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
-              Threads
+              Blog
             </Link>
           </div>
 
