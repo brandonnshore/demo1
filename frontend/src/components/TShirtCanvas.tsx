@@ -58,6 +58,31 @@ const TShirtCanvas = forwardRef(({
         link.click();
         document.body.removeChild(link);
       }
+    },
+    getThumbnail: () => {
+      if (stageRef.current) {
+        // Export smaller thumbnail for previews
+        return stageRef.current.toDataURL({
+          pixelRatio: 1,
+          mimeType: 'image/png',
+          quality: 0.8
+        });
+      }
+      return null;
+    },
+    getThumbnailBlob: async (): Promise<Blob | null> => {
+      if (stageRef.current) {
+        const dataUrl = stageRef.current.toDataURL({
+          pixelRatio: 1,
+          mimeType: 'image/png',
+          quality: 0.8
+        });
+
+        // Convert data URL to Blob
+        const response = await fetch(dataUrl);
+        return await response.blob();
+      }
+      return null;
     }
   }));
 

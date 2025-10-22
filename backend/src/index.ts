@@ -24,8 +24,16 @@ import { notFound } from './middleware/notFound';
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure helmet to allow cross-origin images
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "http://localhost:3001", "http://localhost:3002"],
+    },
+  },
+}));
 
 // CORS configuration
 app.use(cors({
@@ -46,8 +54,10 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve uploaded files
-app.use('/uploads', express.static(process.env.LOCAL_STORAGE_PATH || './uploads'));
+// Serve uploaded files - IMPORTANT: This must be before error handlers
+const path = require('path');
+const uploadsPath = path.resolve(process.env.LOCAL_STORAGE_PATH || './uploads');
+app.use('/uploads', express.static(uploadsPath));
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {

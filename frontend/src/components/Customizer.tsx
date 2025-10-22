@@ -6,6 +6,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Upload, Type, Palette, Download, ArrowDownToLine, Save } from 'lucide-react';
 import TShirtCanvas from './TShirtCanvas';
 import { useAuth } from '../contexts/AuthContext';
+import SaveDesignModal from './SaveDesignModal';
 
 interface CustomizerProps {
   product: Product;
@@ -55,6 +56,10 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   // Price state
   const [priceQuote, setPriceQuote] = useState<any>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
+
+  // Save design modal state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [savedDesignName, setSavedDesignName] = useState('');
 
   // Calculate unit cost based on artwork
   const calculateUnitCost = (): number => {
@@ -340,16 +345,18 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
     }
   };
 
-  const handleSaveDesign = async () => {
+  const handleSaveDesign = () => {
     if (!isAuthenticated) {
       // Redirect to login, then back to this page
       navigate('/login', { state: { from: window.location.pathname + window.location.search } });
       return;
     }
 
-    const designName = prompt('Enter a name for your design:');
-    if (!designName) return;
+    // Open the modal
+    setShowSaveModal(true);
+  };
 
+  const performSaveDesign = async (designName: string) => {
     try {
       const designData = {
         front: frontArtworks.map(a => a.position),
@@ -359,15 +366,34 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
 
       const artworkIds: string[] = []; // We'll implement this later with actual file IDs
 
+      // Capture thumbnail
+      let thumbnailUrl = '';
+      if (canvasRef.current && canvasRef.current.getThumbnailBlob) {
+        try {
+          const thumbnailBlob = await canvasRef.current.getThumbnailBlob();
+          if (thumbnailBlob) {
+            // Convert blob to file
+            const thumbnailFile = new File([thumbnailBlob], 'thumbnail.png', { type: 'image/png' });
+            // Upload thumbnail
+            const uploadedAsset = await uploadAPI.uploadFile(thumbnailFile);
+            thumbnailUrl = uploadedAsset.file_url;
+          }
+        } catch (err) {
+          console.error('Failed to capture thumbnail:', err);
+          // Continue without thumbnail
+        }
+      }
+
       if (loadedDesignId) {
         // Update existing design
         await designAPI.update(loadedDesignId, {
           name: designName,
           variantId: selectedVariant?.id,
           designData,
-          artworkIds
+          artworkIds,
+          thumbnailUrl
         });
-        alert('Design updated successfully!');
+        setSavedDesignName(designName);
       } else {
         // Save new design
         const saved = await designAPI.save({
@@ -375,14 +401,15 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
           productId: product.id,
           variantId: selectedVariant?.id,
           designData,
-          artworkIds
+          artworkIds,
+          thumbnailUrl
         });
         setLoadedDesignId(saved.id);
-        alert('Design saved successfully!');
+        setSavedDesignName(designName);
       }
     } catch (error: any) {
       console.error('Error saving design:', error);
-      alert(error.response?.data?.message || 'Failed to save design. Please try again.');
+      throw error; // Re-throw so the modal can handle it
     }
   };
 
@@ -889,6 +916,15 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
           </div>
         </div>
       </div>
+
+      {/* Save Design Modal */}
+      <SaveDesignModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={performSaveDesign}
+        isUpdating={!!loadedDesignId}
+        currentName={savedDesignName}
+      />
     </div>
   );
 }
