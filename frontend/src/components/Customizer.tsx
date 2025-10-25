@@ -38,10 +38,10 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [currentPlacement] = useState<string>('front_chest');
   const [view, setView] = useState<'front' | 'neck' | 'back'>('front');
 
-  // Artwork state per view
-  const [frontArtworks, setFrontArtworks] = useState<Array<{url: string, position: any}>>([]);
-  const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any} | null>(null);
-  const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any}>>([]);
+  // Artwork state per view (now includes assetId for tracking)
+  const [frontArtworks, setFrontArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
+  const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
+  const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
 
   const [, setUploadedFile] = useState<any>(null);
   // Future feature: text input functionality
@@ -234,59 +234,76 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         }
       }
 
-      // Create a local preview URL immediately
+      // Create a local preview URL immediately for instant feedback
       const previewUrl = URL.createObjectURL(file);
 
-      // Add artwork to the appropriate view
-      const newArtwork = { url: previewUrl, position: null };
+      // Add artwork to the appropriate view with temporary blob URL
+      const tempArtwork = { url: previewUrl, position: null, assetId: undefined };
 
       if (view === 'front') {
-        // Front can have up to 4 artworks
         if (frontArtworks.length < 4) {
-          setFrontArtworks([...frontArtworks, newArtwork]);
+          const artworkIndex = frontArtworks.length;
+          setFrontArtworks([...frontArtworks, tempArtwork]);
+
+          // Upload to server and update with permanent URL
+          uploadAPI.uploadFile(file).then((asset) => {
+            setFrontArtworks(prev => {
+              const updated = [...prev];
+              if (updated[artworkIndex]) {
+                updated[artworkIndex] = {
+                  url: `http://localhost:3001${asset.file_url}`,
+                  position: updated[artworkIndex].position,
+                  assetId: asset.id
+                };
+              }
+              return updated;
+            });
+          }).catch(err => console.error('Upload failed:', err));
         } else {
           alert('Maximum 4 artworks allowed on front view');
           e.target.value = '';
           return;
         }
       } else if (view === 'neck') {
-        // Neck can only have 1 artwork
         if (neckArtwork) {
           alert('Only 1 artwork allowed on neck view. Remove existing artwork first.');
           e.target.value = '';
           return;
         }
-        setNeckArtwork(newArtwork);
+        setNeckArtwork(tempArtwork);
+
+        // Upload to server and update with permanent URL
+        uploadAPI.uploadFile(file).then((asset) => {
+          setNeckArtwork({
+            url: `http://localhost:3001${asset.file_url}`,
+            position: neckArtwork?.position || null,
+            assetId: asset.id
+          });
+        }).catch(err => console.error('Upload failed:', err));
       } else if (view === 'back') {
-        // Back can have up to 4 artworks
         if (backArtworks.length < 4) {
-          setBackArtworks([...backArtworks, newArtwork]);
+          const artworkIndex = backArtworks.length;
+          setBackArtworks([...backArtworks, tempArtwork]);
+
+          // Upload to server and update with permanent URL
+          uploadAPI.uploadFile(file).then((asset) => {
+            setBackArtworks(prev => {
+              const updated = [...prev];
+              if (updated[artworkIndex]) {
+                updated[artworkIndex] = {
+                  url: `http://localhost:3001${asset.file_url}`,
+                  position: updated[artworkIndex].position,
+                  assetId: asset.id
+                };
+              }
+              return updated;
+            });
+          }).catch(err => console.error('Upload failed:', err));
         } else {
           alert('Maximum 4 artworks allowed on back view');
           e.target.value = '';
           return;
         }
-      }
-
-      // Upload to server in background
-      try {
-        const asset = await uploadAPI.uploadFile(file);
-        setUploadedFile(asset);
-
-        // Add as placement
-        const newPlacement: Placement = {
-          location: currentPlacement as any,
-          x: 5,
-          y: 5,
-          width: 4,
-          height: 4,
-          artwork_id: asset.id,
-          colors: ['#000000'],
-        };
-
-        setPlacements([...placements, newPlacement]);
-      } catch (uploadError) {
-        console.error('Server upload failed (continuing with local preview):', uploadError);
       }
 
       // Reset file input
@@ -402,7 +419,12 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         neck: neckArtwork ? [neckArtwork.position] : []
       };
 
-      const artworkIds: string[] = []; // We'll implement this later with actual file IDs
+      // Collect all artwork asset IDs from all views
+      const artworkIds: string[] = [
+        ...frontArtworks.filter(a => a.assetId).map(a => a.assetId!),
+        ...backArtworks.filter(a => a.assetId).map(a => a.assetId!),
+        ...(neckArtwork?.assetId ? [neckArtwork.assetId] : [])
+      ];
 
       // Capture thumbnail
       let thumbnailUrl = '';
