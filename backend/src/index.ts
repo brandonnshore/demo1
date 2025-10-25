@@ -59,9 +59,14 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve uploaded files - IMPORTANT: This must be before error handlers
+// Serve uploaded files with CORS headers - IMPORTANT: This must be before error handlers
 const uploadsPath = path.resolve(env.LOCAL_STORAGE_PATH || './uploads');
-app.use('/uploads', express.static(uploadsPath));
+app.use('/uploads', (req: Request, res: Response, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(uploadsPath));
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
