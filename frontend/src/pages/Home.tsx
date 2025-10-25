@@ -183,7 +183,7 @@ export default function Home() {
                           src={product.images[0]}
                           alt={product.title}
                           className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-500"
-                          style={{ imageRendering: 'high-quality' }}
+                          style={{ imageRendering: 'auto' }}
                           onError={(e) => {
                             e.currentTarget.src = '/assets/blank-tshirt.png';
                           }}
@@ -193,7 +193,7 @@ export default function Home() {
                           src="/assets/blank-tshirt.png"
                           alt={product.title}
                           className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-500"
-                          style={{ imageRendering: 'high-quality' }}
+                          style={{ imageRendering: 'auto' }}
                         />
                       )}
                     </div>

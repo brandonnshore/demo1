@@ -27,21 +27,16 @@ export default function AuthCallback() {
         const { email, user_metadata } = session.user;
         const name = user_metadata?.full_name || user_metadata?.name || email?.split('@')[0] || 'User';
 
-        console.log('OAuth user:', { email, name });
-
         try {
           // Try to register the user in our backend (will fail if exists, which is fine)
           await authAPI.register(email!, 'oauth-' + session.user.id, name);
-          console.log('User registered successfully');
         } catch (err: any) {
-          console.log('User registration failed (might already exist):', err.response?.data?.message);
           // User might already exist, that's okay - try to login instead
         }
 
         // Now login with email and the OAuth password
         try {
           await login(email!, 'oauth-' + session.user.id);
-          console.log('User logged in successfully');
           // Redirect to dashboard
           navigate('/dashboard');
         } catch (loginErr: any) {

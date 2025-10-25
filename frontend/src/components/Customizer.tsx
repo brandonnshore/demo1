@@ -3,7 +3,7 @@ import { Product, Variant, DecorationMethod, Placement } from '../types';
 import { priceAPI, uploadAPI, designAPI } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Upload, Type, Palette, Download, ArrowDownToLine, Save } from 'lucide-react';
+import { Upload, ArrowDownToLine, Save } from 'lucide-react';
 import TShirtCanvas from './TShirtCanvas';
 import { useAuth } from '../contexts/AuthContext';
 import SaveDesignModal from './SaveDesignModal';
@@ -15,7 +15,7 @@ interface CustomizerProps {
   decorationMethods: DecorationMethod[];
 }
 
-export default function Customizer({ product, variants, decorationMethods }: CustomizerProps) {
+export default function Customizer({ product, variants }: CustomizerProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
   const updateItem = useCartStore((state) => state.updateItem);
@@ -30,12 +30,12 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState('');
+  const [selectedMethod] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   // Customization state - separate for each view
   const [placements, setPlacements] = useState<Placement[]>([]);
-  const [currentPlacement, setCurrentPlacement] = useState<string>('front_chest');
+  const [currentPlacement] = useState<string>('front_chest');
   const [view, setView] = useState<'front' | 'neck' | 'back'>('front');
 
   // Artwork state per view
@@ -43,9 +43,10 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
   const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any} | null>(null);
   const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any}>>([]);
 
-  const [uploadedFile, setUploadedFile] = useState<any>(null);
-  const [textInput, setTextInput] = useState('');
-  const [textColor, setTextColor] = useState('#000000');
+  const [, setUploadedFile] = useState<any>(null);
+  // Future feature: text input functionality
+  // const [, setTextInput] = useState('');
+  // const [textColor] = useState('#000000');
 
   // Current view's artwork
   const getCurrentArtworks = () => {
@@ -57,9 +58,9 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
 
   const currentArtwork = getCurrentArtworks()[0] || null;
 
-  // Price state
-  const [priceQuote, setPriceQuote] = useState<any>(null);
-  const [loadingPrice, setLoadingPrice] = useState(false);
+  // Price state (used internally for future price calculation feature)
+  const [, setPriceQuote] = useState<any>(null);
+  const [, setLoadingPrice] = useState(false);
 
   // Save design modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -358,22 +359,23 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
     return null;
   };
 
-  const handleAddText = () => {
-    if (!textInput.trim()) return;
-
-    const newPlacement: Placement = {
-      location: currentPlacement as any,
-      x: 5,
-      y: 5,
-      width: 4,
-      height: 2,
-      text_element_id: `text-${Date.now()}`,
-      colors: [textColor],
-    };
-
-    setPlacements([...placements, newPlacement]);
-    setTextInput('');
-  };
+  // Future feature: Add text to design
+  // const handleAddText = () => {
+  //   if (!textInput.trim()) return;
+  //
+  //   const newPlacement: Placement = {
+  //     location: currentPlacement as any,
+  //     x: 5,
+  //     y: 5,
+  //     width: 4,
+  //     height: 2,
+  //     text_element_id: `text-${Date.now()}`,
+  //     colors: [textColor],
+  //   };
+  //
+  //   setPlacements([...placements, newPlacement]);
+  //   setTextInput('');
+  // };
 
   const handleDownloadDesign = () => {
     if (canvasRef.current && canvasRef.current.downloadImage) {
@@ -510,7 +512,7 @@ export default function Customizer({ product, variants, decorationMethods }: Cus
     }, 1500);
   };
 
-  const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
+  // const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
   const [colorSectionOpen, setColorSectionOpen] = useState(true);
   const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
   const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);

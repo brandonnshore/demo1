@@ -7,7 +7,7 @@ export default function ProductDetail() {
   const { slug } = useParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;

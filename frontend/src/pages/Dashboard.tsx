@@ -164,8 +164,8 @@ export default function Dashboard() {
                       src={design.thumbnail_url.startsWith('http') ? design.thumbnail_url : `http://localhost:3001${design.thumbnail_url}`}
                       alt={design.name}
                       className="relative w-full h-full object-contain bg-white"
-                      onLoad={(e) => {
-                        console.log('Thumbnail loaded:', design.thumbnail_url);
+                      onLoad={() => {
+                        // Thumbnail loaded successfully
                       }}
                       onError={(e) => {
                         console.error('Thumbnail failed to load:', design.thumbnail_url);
