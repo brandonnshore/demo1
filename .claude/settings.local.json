@@ -9,7 +9,13 @@
       "Read(//c/Users/bshore1/Pictures/Screenshots/**)",
       "Bash(npm update:*)",
       "Bash(git log:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

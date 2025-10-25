@@ -1,11 +1,13 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { rateLimit } from 'express-rate-limit';
+import path from 'path';
 
-// Load environment variables
-dotenv.config();
+// Import configuration and utilities
+import { env } from './config/env';
+import { logger } from './utils/logger';
+import { closePool } from './config/database';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -22,7 +24,6 @@ import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
 const app: Application = express();
-const PORT = process.env.PORT || 3001;
 
 // Security middleware - configure helmet to allow cross-origin images
 app.use(helmet({
@@ -37,15 +38,19 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: env.FRONTEND_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX_REQUESTS,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use('/api/', limiter);
@@ -55,8 +60,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve uploaded files - IMPORTANT: This must be before error handlers
-const path = require('path');
-const uploadsPath = path.resolve(process.env.LOCAL_STORAGE_PATH || './uploads');
+const uploadsPath = path.resolve(env.LOCAL_STORAGE_PATH || './uploads');
 app.use('/uploads', express.static(uploadsPath));
 
 // Health check
@@ -79,10 +83,51 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Raspberry API Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}`);
+const server = app.listen(env.PORT, () => {
+  logger.info('Raspberry API Server started', {
+    port: env.PORT,
+    environment: env.NODE_ENV,
+    apiUrl: `http://localhost:${env.PORT}`,
+  });
+});
+
+// Graceful shutdown handler
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received, starting graceful shutdown`);
+
+  server.close(async () => {
+    logger.info('HTTP server closed');
+
+    try {
+      await closePool();
+      logger.info('All resources cleaned up, exiting');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown', {}, error as Error);
+      process.exit(1);
+    }
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+// Handle shutdown signals
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught errors
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught exception', {}, error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('Unhandled promise rejection', { reason: String(reason) });
+  process.exit(1);
 });
 
 export default app;

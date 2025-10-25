@@ -1,5 +1,4 @@
 import pool from '../config/database';
-import { ApiError } from '../middleware/errorHandler';
 
 interface SavedDesign {
   id: string;
@@ -7,7 +6,7 @@ interface SavedDesign {
   name: string;
   product_id: string;
   variant_id?: string;
-  design_data: any;
+  design_data: unknown;
   artwork_ids: string[];
   thumbnail_url?: string;
   notes?: string;

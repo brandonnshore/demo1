@@ -1,11 +1,9 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import pool from '../config/database';
 import { User } from '../models/types';
 import { ApiError } from '../middleware/errorHandler';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+import { env } from '../config/env';
 
 export const registerUser = async (email: string, password: string, name: string): Promise<User> => {
   // Check if user exists
@@ -53,10 +51,10 @@ export const loginUser = async (email: string, password: string): Promise<{ user
   }
 
   // Generate token
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET
-  );
+  const payload = { id: user.id, email: user.email, role: user.role };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: SignOptions = { expiresIn: env.JWT_EXPIRES_IN as any };
+  const token = jwt.sign(payload, env.JWT_SECRET, options);
 
   // Remove password from response
   delete user.password_hash;

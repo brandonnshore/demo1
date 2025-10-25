@@ -3,7 +3,7 @@ import { getAllProducts, getProductBySlug, getVariantsByProductId } from '../ser
 import { getDecorationMethods } from '../services/priceService';
 import { ApiError } from '../middleware/errorHandler';
 
-export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
+export const getProducts = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const products = await getAllProducts('active');
 

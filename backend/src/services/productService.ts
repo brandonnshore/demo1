@@ -70,9 +70,9 @@ export const createProduct = async (productData: any): Promise<Product> => {
   return result.rows[0];
 };
 
-export const updateProduct = async (id: string, productData: any): Promise<Product> => {
-  const fields = [];
-  const values = [];
+export const updateProduct = async (id: string, productData: Record<string, unknown>): Promise<Product> => {
+  const fields: string[] = [];
+  const values: unknown[] = [];
   let paramCount = 1;
 
   Object.keys(productData).forEach((key) => {
