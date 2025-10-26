@@ -69,7 +69,7 @@ I've added **Google** and **Apple** sign-in buttons to your Login and Register p
 1. Go to https://supabase.com/dashboard/project/xezmvslgaclidlkpkkuc/auth/url-configuration
 2. Add these redirect URLs (one per line):
    ```
-   http://localhost:3002/auth/callback
+   http://localhost:5173/auth/callback
    https://yourdomain.com/auth/callback
    ```
 3. Click **Save**
@@ -82,7 +82,7 @@ I've added **Google** and **Apple** sign-in buttons to your Login and Register p
    cd frontend
    npm run dev
    ```
-3. Visit http://localhost:3002/login or http://localhost:3002/register
+3. Visit http://localhost:3003/login or http://localhost:3003/register
 4. Click **Continue with Google** or **Continue with Apple**
 5. Complete the OAuth flow
 6. You'll be redirected to `/auth/callback` then to `/dashboard`
