@@ -92,9 +92,16 @@ exports.capturePayment = capturePayment;
 const getOrder = async (req, res, next) => {
     try {
         const { id } = req.params;
-        // Try to get by ID first, then by order number
-        let order = await (0, orderService_1.getOrderById)(id);
-        if (!order) {
+        // Check if ID is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isUuid = uuidRegex.test(id);
+        let order;
+        if (isUuid) {
+            // Try to get by UUID first
+            order = await (0, orderService_1.getOrderById)(id);
+        }
+        else {
+            // Try to get by order number
             order = await (0, orderService_1.getOrderByNumber)(id);
         }
         if (!order) {

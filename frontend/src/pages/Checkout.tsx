@@ -4,6 +4,7 @@ import { useCartStore } from '../stores/cartStore';
 import { orderAPI } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import PaymentRequestButton from '../components/PaymentRequestButton';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -31,6 +32,68 @@ function CheckoutForm() {
     postal_code: '',
     country: 'US',
   });
+
+  const handlePaymentRequestPayment = async (paymentMethodId: string) => {
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    // Validate form data
+    if (!customerInfo.email || !customerInfo.name || !shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postal_code) {
+      throw new Error('Please fill out all required fields before using digital wallet payment');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Create order
+      const orderData = {
+        customer: customerInfo,
+        items: items.map((item) => ({
+          variant_id: item.variantId,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total_price: item.unitPrice * item.quantity,
+          customization: item.customization,
+        })),
+        shipping_address: shippingAddress,
+        billing_address: shippingAddress,
+        subtotal: getTotalPrice(),
+        tax: 0,
+        shipping: 0,
+        total: getTotalPrice(),
+      };
+
+      const { order, client_secret } = await orderAPI.create(orderData);
+
+      // Confirm payment with the payment method from Apple Pay/Google Pay
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(client_secret, {
+        payment_method: paymentMethodId,
+      });
+
+      if (stripeError) {
+        throw new Error(stripeError.message);
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Capture payment
+        await orderAPI.capturePayment(order.id, paymentIntent.id);
+
+        // Clear cart
+        clearCart();
+
+        // Redirect to order tracking
+        navigate(`/orders/${order.order_number}`);
+      }
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setError(err.message || 'Payment failed. Please try again.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,6 +289,14 @@ function CheckoutForm() {
         {/* Payment Information */}
         <div className="card">
           <h2 className="text-2xl font-bold mb-4">Payment Information</h2>
+
+          {/* Apple Pay / Google Pay */}
+          <PaymentRequestButton
+            totalAmount={getTotalPrice()}
+            onPaymentSuccess={handlePaymentRequestPayment}
+            disabled={loading}
+          />
+
           <div className="p-4 border border-gray-300 rounded-lg">
             <CardElement
               options={{
