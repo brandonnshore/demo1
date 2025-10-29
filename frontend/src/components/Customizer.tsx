@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Product, Variant, DecorationMethod, Placement } from '../types';
+import { Product, Variant, DecorationMethod } from '../types';
 import { priceAPI, uploadAPI, designAPI } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -184,31 +184,8 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     }
   };
 
-  // Calculate price when relevant fields change
-  useEffect(() => {
-    if (selectedVariant && selectedMethod && placements.length > 0) {
-      calculatePrice();
-    }
-  }, [selectedVariant, selectedMethod, placements, quantity]);
-
-  const calculatePrice = async () => {
-    if (!selectedVariant) return;
-
-    setLoadingPrice(true);
-    try {
-      const quote = await priceAPI.calculate({
-        variant_id: selectedVariant.id,
-        method: selectedMethod,
-        placements,
-        quantity,
-      });
-      setPriceQuote(quote);
-    } catch (error) {
-      console.error('Failed to calculate price:', error);
-    } finally {
-      setLoadingPrice(false);
-    }
-  };
+  // Price calculation feature - disabled for now
+  // Future: Re-enable when dynamic pricing is needed
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -505,7 +482,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       unitPrice: unitCost,
       customization: {
         method: selectedMethod || 'screen_print',
-        placements,
         frontArtworks,
         backArtworks,
         neckArtwork,

@@ -19,7 +19,8 @@
       "Bash(lsof -ti:5173)",
       "Bash(git add frontend/src/components/Customizer.tsx)",
       "Bash(git commit -m \"$(cat <<''EOF''\nFix TypeScript errors for production build\n\n- Remove unused state variables (setPlacements, currentPlacement, setUploadedFile)\n- Fix neckArtwork position type error by using setState callback\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nRemove unused placements variable references\n\n- Remove Placement import\n- Remove unused price calculation useEffect\n- Remove placements from customization object (was empty array)\n- No functional changes to site behavior\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
