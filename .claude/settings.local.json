@@ -41,7 +41,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nFix getOrder to handle order numbers correctly\n\n- Check if ID is UUID format before querying by UUID\n- Prevents PostgreSQL error when fetching order by order number\n- Fixes checkout redirect to order confirmation page\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git add frontend/src/pages/OrderTracking.tsx)",
       "Bash(git commit -m \"Fix number formatting in OrderTracking page\")",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd Apple Pay and Google Pay support\n\n- Create PaymentRequestButton component using Stripe Payment Request API\n- Integrate with checkout flow to support digital wallet payments\n- Show Apple Pay/Google Pay button when available on user''s device\n- Falls back to regular card input for unsupported browsers\n- Maintains same order creation and payment flow\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd Apple Pay and Google Pay support\n\n- Create PaymentRequestButton component using Stripe Payment Request API\n- Integrate with checkout flow to support digital wallet payments\n- Show Apple Pay/Google Pay button when available on user''s device\n- Falls back to regular card input for unsupported browsers\n- Maintains same order creation and payment flow\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"Add debugging for Payment Request Button\")"
     ],
     "deny": [],
     "ask": []

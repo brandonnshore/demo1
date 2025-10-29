@@ -44,10 +44,16 @@ export default function PaymentRequestButton({
 
     // Check if the browser supports Payment Request API
     pr.canMakePayment().then((result) => {
+      console.log('[Payment Request] Can make payment:', result);
       if (result) {
         setPaymentRequest(pr);
         setCanMakePayment(true);
+        console.log('[Payment Request] Apple Pay/Google Pay available!');
+      } else {
+        console.log('[Payment Request] No digital wallets available');
       }
+    }).catch((error) => {
+      console.error('[Payment Request] Error checking payment availability:', error);
     });
 
     pr.on('paymentmethod', async (event) => {
