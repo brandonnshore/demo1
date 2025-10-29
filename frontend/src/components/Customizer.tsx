@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Product, Variant, DecorationMethod } from '../types';
-import { priceAPI, uploadAPI, designAPI } from '../services/api';
+import { uploadAPI, designAPI } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Upload, ArrowDownToLine, Save } from 'lucide-react';
@@ -55,9 +55,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
   const currentArtwork = getCurrentArtworks()[0] || null;
 
-  // Price state (used internally for future price calculation feature)
-  const [, setPriceQuote] = useState<any>(null);
-  const [, setLoadingPrice] = useState(false);
+  // Price state removed - using calculateUnitCost() instead
 
   // Save design modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
