@@ -13,11 +13,15 @@ const stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY || '', {
 const createOrder = async (req, res, next) => {
     try {
         const orderData = req.body;
+        console.log('[ORDER CREATE] Received order data:', JSON.stringify(orderData, null, 2));
         if (!orderData.customer || !orderData.items || !orderData.shipping_address) {
             throw new errorHandler_1.ApiError(400, 'customer, items, and shipping_address are required');
         }
+        console.log('[ORDER CREATE] Creating order service...');
         const order = await (0, orderService_1.createOrder)(orderData);
+        console.log('[ORDER CREATE] Order created:', order.id);
         // Create Stripe payment intent
+        console.log('[ORDER CREATE] Creating Stripe payment intent...');
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(order.total * 100), // Convert to cents
             currency: 'usd',
@@ -26,17 +30,36 @@ const createOrder = async (req, res, next) => {
                 order_number: order.order_number
             }
         });
+        console.log('[ORDER CREATE] Stripe payment intent created:', paymentIntent.id);
         // Update order with payment intent
+        console.log('[ORDER CREATE] Updating order with payment intent...');
         await (0, orderService_1.updateOrderPaymentStatus)(order.id, 'pending', paymentIntent.id);
-        res.status(201).json({
+        console.log('[ORDER CREATE] Order updated successfully');
+        console.log('[ORDER CREATE] Preparing response...');
+        // Test if order can be stringified
+        try {
+            JSON.stringify(order);
+            console.log('[ORDER CREATE] Order stringified successfully');
+        }
+        catch (stringifyError) {
+            console.error('[ORDER CREATE] Failed to stringify order:', stringifyError);
+            throw stringifyError;
+        }
+        const responseData = {
             success: true,
             data: {
                 order,
                 client_secret: paymentIntent.client_secret
             }
-        });
+        };
+        console.log('[ORDER CREATE] Sending response...');
+        res.status(201).json(responseData);
+        console.log('[ORDER CREATE] Response sent successfully');
     }
     catch (error) {
+        console.error('[ORDER CREATE ERROR]:', error);
+        console.error('[ORDER CREATE ERROR] Stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('[ORDER CREATE ERROR] Message:', error instanceof Error ? error.message : String(error));
         next(error);
     }
 };

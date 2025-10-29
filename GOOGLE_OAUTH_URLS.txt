@@ -1,0 +1,10 @@
+GOOGLE OAUTH REDIRECT URLS
+==========================
+
+Add these URLs to your Google OAuth configuration:
+
+Production Callback URL:
+https://demo1-frontend-xi.vercel.app/auth/callback
+
+Supabase Callback URL (if not already added):
+https://xezmvslgaclidlkpkkuc.supabase.co/auth/v1/callback

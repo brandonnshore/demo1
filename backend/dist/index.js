@@ -25,6 +25,8 @@ const designs_1 = __importDefault(require("./routes/designs"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const notFound_1 = require("./middleware/notFound");
 const app = (0, express_1.default)();
+// Trust proxy - Railway uses a reverse proxy (one hop)
+app.set('trust proxy', 1);
 // Security middleware - configure helmet to allow cross-origin images
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -54,9 +56,14 @@ app.use('/api/', limiter);
 // Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
-// Serve uploaded files - IMPORTANT: This must be before error handlers
+// Serve uploaded files with CORS headers - IMPORTANT: This must be before error handlers
 const uploadsPath = path_1.default.resolve(env_1.env.LOCAL_STORAGE_PATH || './uploads');
-app.use('/uploads', express_1.default.static(uploadsPath));
+app.use('/uploads', (_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+}, express_1.default.static(uploadsPath));
 // Health check
 app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

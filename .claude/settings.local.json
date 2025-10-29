@@ -23,7 +23,21 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nRemove unused placements variable references\n\n- Remove Placement import\n- Remove unused price calculation useEffect\n- Remove placements from customization object (was empty array)\n- No functional changes to site behavior\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nRemove remaining unused imports and state variables\n\n- Remove unused priceAPI import\n- Remove unused setPriceQuote and setLoadingPrice state\n- No functional changes, build optimization only\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_Ll2OsY/**)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nFix TypeScript error in backend index.ts\n\n- Prefix unused req parameter with underscore\n- No functional changes\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix TypeScript error in backend index.ts\n\n- Prefix unused req parameter with underscore\n- No functional changes\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_Gx3oGp/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_fFHquc/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_LblQ1m/**)",
+      "Read(//Users/brandonshore/Downloads/**)",
+      "Bash(git add backend/src/index.ts)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix Railway reverse proxy issue\n\n- Add trust proxy setting for Railway\n- Fixes rate limiting and IP detection\n- Resolves checkout errors\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"Fix trust proxy to use 1 hop for Railway\")",
+      "Bash(curl -s https://raspberry-backend-production.up.railway.app/health)",
+      "Bash(npm run build)",
+      "Bash(git add backend/src/utils/logger.ts)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImprove error logging for production debugging\n\n- Always include stack traces in production logs\n- Add error name to log output\n- Helps diagnose checkout failures on Railway\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git add backend/src/controllers/orderController.ts)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd detailed debug logging to order creation\n\n- Log each step of order creation process\n- Log full error details including stack trace\n- Helps identify exact failure point in checkout\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nTest JSON serialization in order response\n\n- Add explicit stringify test before sending response\n- Add more detailed logging for response sending\n- Helps identify if order object has serialization issues\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

@@ -32,8 +32,9 @@ class Logger {
         if (error) {
             entry.error = {
                 message: error.message,
-                stack: env_1.isDevelopment ? error.stack : undefined,
+                stack: error.stack, // Always include stack trace for debugging
                 code: error.code,
+                name: error.name,
             };
         }
         // In development, use console methods for better readability

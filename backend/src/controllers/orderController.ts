@@ -37,13 +37,28 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
     await updateOrderPaymentStatus(order.id, 'pending', paymentIntent.id);
     console.log('[ORDER CREATE] Order updated successfully');
 
-    res.status(201).json({
+    console.log('[ORDER CREATE] Preparing response...');
+
+    // Test if order can be stringified
+    try {
+      JSON.stringify(order);
+      console.log('[ORDER CREATE] Order stringified successfully');
+    } catch (stringifyError) {
+      console.error('[ORDER CREATE] Failed to stringify order:', stringifyError);
+      throw stringifyError;
+    }
+
+    const responseData = {
       success: true,
       data: {
         order,
         client_secret: paymentIntent.client_secret
       }
-    });
+    };
+
+    console.log('[ORDER CREATE] Sending response...');
+    res.status(201).json(responseData);
+    console.log('[ORDER CREATE] Response sent successfully');
   } catch (error) {
     console.error('[ORDER CREATE ERROR]:', error);
     console.error('[ORDER CREATE ERROR] Stack:', error instanceof Error ? error.stack : 'No stack trace');
