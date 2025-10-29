@@ -98,10 +98,16 @@ export const getOrder = async (req: Request, res: Response, next: NextFunction) 
   try {
     const { id } = req.params;
 
-    // Try to get by ID first, then by order number
-    let order = await getOrderById(id);
+    // Check if ID is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isUuid = uuidRegex.test(id);
 
-    if (!order) {
+    let order;
+    if (isUuid) {
+      // Try to get by UUID first
+      order = await getOrderById(id);
+    } else {
+      // Try to get by order number
       order = await getOrderByNumber(id);
     }
 
