@@ -149,7 +149,7 @@ export default function OrderTracking() {
                 <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold">${item.total_price.toFixed(2)}</p>
+                <p className="font-semibold">${Number(item.total_price).toFixed(2)}</p>
               </div>
             </div>
           ))}
@@ -175,19 +175,19 @@ export default function OrderTracking() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>${order.subtotal.toFixed(2)}</span>
+              <span>${Number(order.subtotal).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
-              <span>${order.shipping.toFixed(2)}</span>
+              <span>${Number(order.shipping).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax</span>
-              <span>${order.tax.toFixed(2)}</span>
+              <span>${Number(order.tax).toFixed(2)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span className="text-primary-600">${order.total.toFixed(2)}</span>
+              <span className="text-primary-600">${Number(order.total).toFixed(2)}</span>
             </div>
           </div>
         </div>
