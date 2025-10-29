@@ -1,0 +1,20 @@
+VERCEL FRONTEND ENVIRONMENT VARIABLES
+=====================================
+
+Copy these one by one into Vercel:
+
+Variable 1:
+Key: VITE_STRIPE_PUBLISHABLE_KEY
+Value: pk_test_51S6MQDEDQ6axpLThLLd3vs0vMlnBCJJ5rJnTonlS2iaMWrBii8UXoosY3CLLoXqOu7SyqhapEC7WTapzAuG4QtJR00CZ7ndWUt
+
+Variable 2:
+Key: VITE_SUPABASE_URL
+Value: https://xezmvslgaclidlkpkkuc.supabase.co
+
+Variable 3:
+Key: VITE_SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhlem12c2xnYWNsaWRsa3Bra3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NTEyMjgsImV4cCI6MjA3NjMyNzIyOH0.bHf7J86q7Pj62mk2mnE1az0roX3wHuBo4CVu1uIIv10
+
+Variable 4 (ADD THIS AFTER BACKEND IS DEPLOYED):
+Key: VITE_API_URL
+Value: [You'll get this from Railway/Render in the next step]

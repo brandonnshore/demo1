@@ -34,8 +34,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [quantity, setQuantity] = useState(1);
 
   // Customization state - separate for each view
-  const [placements, setPlacements] = useState<Placement[]>([]);
-  const [currentPlacement] = useState<string>('front_chest');
   const [view, setView] = useState<'front' | 'neck' | 'back'>('front');
 
   // Artwork state per view (now includes assetId for tracking)
@@ -43,7 +41,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
   const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
 
-  const [, setUploadedFile] = useState<any>(null);
   // Future feature: text input functionality
   // const [, setTextInput] = useState('');
   // const [textColor] = useState('#000000');
@@ -274,11 +271,11 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
         // Upload to server and update with permanent URL
         uploadAPI.uploadFile(file).then((asset) => {
-          setNeckArtwork({
+          setNeckArtwork((prev) => ({
             url: `http://localhost:3001${asset.file_url}`,
-            position: neckArtwork?.position || null,
+            position: prev?.position || null,
             assetId: asset.id
-          });
+          }));
         }).catch(err => console.error('Upload failed:', err));
       } else if (view === 'back') {
         if (backArtworks.length < 4) {
