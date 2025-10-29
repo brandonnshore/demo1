@@ -29,6 +29,7 @@ interface LogEntry {
     message: string;
     stack?: string;
     code?: string;
+    name?: string;
   };
 }
 
@@ -54,8 +55,9 @@ class Logger {
     if (error) {
       entry.error = {
         message: error.message,
-        stack: isDevelopment ? error.stack : undefined,
+        stack: error.stack, // Always include stack trace for debugging
         code: (error as NodeJS.ErrnoException).code,
+        name: error.name,
       };
     }
 
