@@ -52,3 +52,5 @@ mockups/
 
 # Misc
 .cache/
+RAILWAY_ENV_VARS.txt
+VERCEL_ENV_VARS.txt

@@ -61,7 +61,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve uploaded files with CORS headers - IMPORTANT: This must be before error handlers
 const uploadsPath = path.resolve(env.LOCAL_STORAGE_PATH || './uploads');
-app.use('/uploads', (req: Request, res: Response, next) => {
+app.use('/uploads', (_req: Request, res: Response, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
