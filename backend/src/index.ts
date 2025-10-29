@@ -25,8 +25,8 @@ import { notFound } from './middleware/notFound';
 
 const app: Application = express();
 
-// Trust proxy - Railway uses a reverse proxy
-app.set('trust proxy', true);
+// Trust proxy - Railway uses a reverse proxy (one hop)
+app.set('trust proxy', 1);
 
 // Security middleware - configure helmet to allow cross-origin images
 app.use(helmet({
