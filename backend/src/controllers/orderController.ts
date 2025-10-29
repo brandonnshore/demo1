@@ -10,14 +10,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orderData = req.body;
+    console.log('[ORDER CREATE] Received order data:', JSON.stringify(orderData, null, 2));
 
     if (!orderData.customer || !orderData.items || !orderData.shipping_address) {
       throw new ApiError(400, 'customer, items, and shipping_address are required');
     }
 
+    console.log('[ORDER CREATE] Creating order service...');
     const order = await createOrderService(orderData);
+    console.log('[ORDER CREATE] Order created:', order.id);
 
     // Create Stripe payment intent
+    console.log('[ORDER CREATE] Creating Stripe payment intent...');
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(order.total * 100), // Convert to cents
       currency: 'usd',
@@ -26,9 +30,12 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
         order_number: order.order_number
       }
     });
+    console.log('[ORDER CREATE] Stripe payment intent created:', paymentIntent.id);
 
     // Update order with payment intent
+    console.log('[ORDER CREATE] Updating order with payment intent...');
     await updateOrderPaymentStatus(order.id, 'pending', paymentIntent.id);
+    console.log('[ORDER CREATE] Order updated successfully');
 
     res.status(201).json({
       success: true,
@@ -38,6 +45,9 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       }
     });
   } catch (error) {
+    console.error('[ORDER CREATE ERROR]:', error);
+    console.error('[ORDER CREATE ERROR] Stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[ORDER CREATE ERROR] Message:', error instanceof Error ? error.message : String(error));
     next(error);
   }
 };
