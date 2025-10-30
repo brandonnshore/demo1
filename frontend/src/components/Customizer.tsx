@@ -219,8 +219,8 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
       // PRIORITY: design_data.selectedColor takes precedence over variant_color
       // This is because Navy (and other UI-only colors) are stored in design_data
-      let colorToSet = null;
-      let sizeToSet = null;
+      let colorToSet: string | null = null;
+      let sizeToSet: string | null = null;
 
       // First: Check design_data for the most recent color selection
       if (design.design_data?.selectedColor) {
