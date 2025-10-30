@@ -452,8 +452,16 @@ const TShirtCanvas = forwardRef(({
                       minY: 560,
                       maxY: 710
                     };
+                  } else if (view === 'back') {
+                    // Back t-shirt boundaries - adjusted to match back shirt printable area
+                    shirtBounds = {
+                      minX: 140,
+                      maxX: 510,
+                      minY: 100,
+                      maxY: 550
+                    };
                   } else {
-                    // Front/Back t-shirt boundaries
+                    // Front t-shirt boundaries
                     shirtBounds = {
                       minX: 80,
                       maxX: 470,

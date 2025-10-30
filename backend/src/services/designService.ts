@@ -73,7 +73,25 @@ export const getDesignById = async (designId: string, userId: string): Promise<S
     return null;
   }
 
-  return result.rows[0];
+  const design = result.rows[0];
+
+  // Fetch artwork URLs from assets table
+  if (design.artwork_ids && Array.isArray(design.artwork_ids) && design.artwork_ids.length > 0) {
+    const artworkResult = await pool.query(
+      `SELECT id, file_url FROM assets WHERE id = ANY($1)`,
+      [design.artwork_ids]
+    );
+
+    // Create a map of asset IDs to URLs
+    const artworkUrls: { [key: string]: string } = {};
+    artworkResult.rows.forEach((row: any) => {
+      artworkUrls[row.id] = row.file_url;
+    });
+
+    design.artwork_urls = artworkUrls;
+  }
+
+  return design;
 };
 
 export const updateDesignById = async (

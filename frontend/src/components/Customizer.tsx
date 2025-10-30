@@ -149,22 +149,63 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       const design = await designAPI.getById(designId);
       setLoadedDesignId(design.id);
 
-      // Load the design data
+      // Create array of all artwork IDs in order (front, back, neck)
+      const allArtworkIds = design.artwork_ids || [];
+      const artworkUrls = design.artwork_urls || {};
+
+      // Get API URL for constructing full artwork URLs
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      // Helper function to get full URL
+      const getFullUrl = (url: string) => {
+        if (!url) return '';
+        // If URL starts with http, it's already a full URL
+        if (url.startsWith('http')) return url;
+        // Otherwise, prepend API URL
+        return `${API_URL}${url}`;
+      };
+
+      // Track which artwork ID we're currently processing
+      let artworkIndex = 0;
+
+      // Load the design data with actual artwork URLs
       if (design.design_data) {
-        if (design.design_data.front) {
-          setFrontArtworks(design.design_data.front.map((pos: any) => ({
-            url: '', // We'll need to load actual URLs from artwork_ids
-            position: pos
-          })));
+        if (design.design_data.front && design.design_data.front.length > 0) {
+          const frontArtworkData = design.design_data.front.map((pos: any) => {
+            const assetId = allArtworkIds[artworkIndex];
+            const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+            artworkIndex++;
+            return {
+              url: url || '',
+              position: pos,
+              assetId: assetId
+            };
+          });
+          setFrontArtworks(frontArtworkData);
         }
-        if (design.design_data.back) {
-          setBackArtworks(design.design_data.back.map((pos: any) => ({
-            url: '',
-            position: pos
-          })));
+
+        if (design.design_data.back && design.design_data.back.length > 0) {
+          const backArtworkData = design.design_data.back.map((pos: any) => {
+            const assetId = allArtworkIds[artworkIndex];
+            const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+            artworkIndex++;
+            return {
+              url: url || '',
+              position: pos,
+              assetId: assetId
+            };
+          });
+          setBackArtworks(backArtworkData);
         }
+
         if (design.design_data.neck && design.design_data.neck.length > 0) {
-          setNeckArtwork({ url: '', position: design.design_data.neck[0] });
+          const assetId = allArtworkIds[artworkIndex];
+          const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+          setNeckArtwork({
+            url: url || '',
+            position: design.design_data.neck[0],
+            assetId: assetId
+          });
         }
       }
 
