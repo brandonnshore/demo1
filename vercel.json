@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.raspberrymerch.com"
+        }
+      ],
+      "destination": "https://raspberrymerch.com/:path*",
+      "permanent": true
+    }
+  ]
+}
