@@ -47,7 +47,13 @@
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_ofXSM8/**)",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_xZx61h/**)",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_0rcfXP/**)",
-      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_f2oRaB/**)"
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_f2oRaB/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_SMQ617/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://www.raspberrymerch.com)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_S3IYXh/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_opu1jd/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_CanF9y/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_ng3Ss3/**)"
     ],
     "deny": [],
     "ask": []
