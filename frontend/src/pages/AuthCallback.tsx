@@ -11,11 +11,16 @@ export default function AuthCallback() {
 
   const handleCallback = async () => {
     try {
+      console.log('[OAuth] Starting callback handler...');
+
       // Get the session from Supabase
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
+      console.log('[OAuth] Session data:', session);
+      console.log('[OAuth] Session error:', sessionError);
+
       if (sessionError) {
-        console.error('Session error:', sessionError);
+        console.error('[OAuth] Session error:', sessionError);
         throw sessionError;
       }
 
@@ -23,19 +28,33 @@ export default function AuthCallback() {
         const { email, user_metadata } = session.user;
         const name = user_metadata?.full_name || user_metadata?.name || email?.split('@')[0] || 'User';
 
+        console.log('[OAuth] User data:', { email, name, id: session.user.id });
+
         // Sync the OAuth user with our backend (this sets the auth token in localStorage)
-        await authAPI.oauthSync(email!, name, session.user.id);
+        console.log('[OAuth] Calling oauthSync...');
+        const result = await authAPI.oauthSync(email!, name, session.user.id);
+        console.log('[OAuth] Sync result:', result);
+
+        // Verify token was set
+        const token = localStorage.getItem('auth_token');
+        console.log('[OAuth] Token in localStorage:', token ? 'EXISTS' : 'MISSING');
 
         // Redirect to dashboard (full page reload will load the user from the token)
+        console.log('[OAuth] Redirecting to dashboard...');
         window.location.href = '/dashboard';
       } else {
-        console.error('No session found');
+        console.error('[OAuth] No session found');
         setError('No session found. Please try again.');
         setTimeout(() => window.location.href = '/login', 2000);
       }
     } catch (error: any) {
-      console.error('OAuth callback error:', error);
-      setError(error.message || 'Authentication failed. Please try again.');
+      console.error('[OAuth] Callback error:', error);
+      console.error('[OAuth] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      setError(error.response?.data?.message || error.message || 'Authentication failed. Please try again.');
       setTimeout(() => window.location.href = '/login', 2000);
     }
   };

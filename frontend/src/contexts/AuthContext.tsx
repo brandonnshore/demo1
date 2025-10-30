@@ -30,16 +30,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('auth_token');
+      console.log('[AuthContext] Checking auth... Token exists:', !!token);
+
       if (token) {
         try {
+          console.log('[AuthContext] Calling /auth/me...');
           const userData = await authAPI.me();
+          console.log('[AuthContext] User data received:', userData);
           setUser(userData);
-        } catch (error) {
-          console.error('Auth check failed:', error);
+        } catch (error: any) {
+          console.error('[AuthContext] Auth check failed:', error);
+          console.error('[AuthContext] Error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+          });
           localStorage.removeItem('auth_token');
         }
       }
       setLoading(false);
+      console.log('[AuthContext] Auth check complete. User:', !!token ? 'LOGGED IN' : 'NOT LOGGED IN');
     };
 
     checkAuth();
