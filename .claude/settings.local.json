@@ -53,7 +53,11 @@
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_S3IYXh/**)",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_opu1jd/**)",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_CanF9y/**)",
-      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_ng3Ss3/**)"
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_ng3Ss3/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_iKztTX/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_HBuV2Z/**)",
+      "Bash(curl -I https://raspberry-backend-production.up.railway.app/uploads/)",
+      "Bash(npm install @supabase/supabase-js)"
     ],
     "deny": [],
     "ask": []

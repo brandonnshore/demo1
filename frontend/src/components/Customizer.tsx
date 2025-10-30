@@ -154,15 +154,13 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       const allArtworkIds = design.artwork_ids || [];
       const artworkUrls = design.artwork_urls || {};
 
-      // Get API URL for constructing full artwork URLs
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-      // Helper function to get full URL
+      // Helper function to get full URL for artwork
       const getFullUrl = (url: string) => {
         if (!url) return '';
-        // If URL starts with http, it's already a full URL
+        // If URL starts with http, it's already a full URL (Supabase Storage)
         if (url.startsWith('http')) return url;
-        // Otherwise, prepend API URL
+        // Otherwise, prepend API URL (local development)
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         return `${API_URL}${url}`;
       };
 

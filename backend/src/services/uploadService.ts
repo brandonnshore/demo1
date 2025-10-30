@@ -4,10 +4,12 @@ import crypto from 'crypto';
 import pool from '../config/database';
 import { Asset } from '../models/types';
 import { ApiError } from '../middleware/errorHandler';
+import { uploadToSupabase, deleteFromSupabase, isSupabaseStorageAvailable } from './supabaseStorage';
 
 const UPLOAD_DIR = process.env.LOCAL_STORAGE_PATH || './uploads';
+const USE_LOCAL_STORAGE = process.env.USE_LOCAL_STORAGE === 'true';
 
-// Ensure upload directory exists
+// Ensure upload directory exists (for local development)
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -17,16 +19,25 @@ export const saveFile = async (
   ownerType: string,
   ownerId?: string
 ): Promise<Asset> => {
-  // Generate unique filename
   const hash = crypto.createHash('md5').update(file.buffer).digest('hex');
-  const ext = path.extname(file.originalname);
-  const filename = `${hash}${ext}`;
-  const filepath = path.join(UPLOAD_DIR, filename);
+  let fileUrl: string;
 
-  // Save file to disk
-  fs.writeFileSync(filepath, file.buffer);
+  // Use Supabase Storage in production, local filesystem in development
+  if (!USE_LOCAL_STORAGE && isSupabaseStorageAvailable()) {
+    // Upload to Supabase Storage (permanent cloud storage)
+    fileUrl = await uploadToSupabase(file);
+    console.log('✅ Uploaded to Supabase Storage:', fileUrl);
+  } else {
+    // Fallback to local filesystem (development only)
+    const ext = path.extname(file.originalname);
+    const filename = `${hash}${ext}`;
+    const filepath = path.join(UPLOAD_DIR, filename);
+    fs.writeFileSync(filepath, file.buffer);
+    fileUrl = `/uploads/${filename}`;
+    console.log('📁 Saved to local storage:', fileUrl);
+  }
 
-  // Create asset record
+  // Create asset record in database
   const result = await pool.query(
     `INSERT INTO assets (
       owner_type, owner_id, file_url, file_type, file_size, original_name, hash
@@ -35,7 +46,7 @@ export const saveFile = async (
     [
       ownerType,
       ownerId || null,
-      `/uploads/${filename}`,
+      fileUrl,
       file.mimetype,
       file.size,
       file.originalname,
@@ -66,10 +77,16 @@ export const deleteAsset = async (id: string): Promise<void> => {
     throw new ApiError(404, 'Asset not found');
   }
 
-  // Delete file from disk
-  const filepath = path.join(UPLOAD_DIR, path.basename(asset.file_url));
-  if (fs.existsSync(filepath)) {
-    fs.unlinkSync(filepath);
+  // Delete file from storage
+  if (asset.file_url.startsWith('http')) {
+    // Supabase Storage URL - delete from cloud
+    await deleteFromSupabase(asset.file_url);
+  } else {
+    // Local filesystem path - delete from disk
+    const filepath = path.join(UPLOAD_DIR, path.basename(asset.file_url));
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+    }
   }
 
   // Delete database record

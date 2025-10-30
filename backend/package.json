@@ -20,6 +20,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.77.0",
     "archiver": "^6.0.1",
     "aws-sdk": "^2.1524.0",
     "bcrypt": "^5.1.1",
