@@ -66,6 +66,8 @@ function validateEnvironment() {
         S3_REGION: process.env.S3_REGION,
         S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
         S3_SECRET_KEY: process.env.S3_SECRET_KEY,
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
         SMTP_HOST: process.env.SMTP_HOST,
         SMTP_PORT: smtpPort,
         SMTP_USER: process.env.SMTP_USER,

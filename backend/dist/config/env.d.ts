@@ -18,6 +18,8 @@ interface EnvironmentConfig {
     S3_REGION?: string;
     S3_ACCESS_KEY?: string;
     S3_SECRET_KEY?: string;
+    SUPABASE_URL?: string;
+    SUPABASE_SERVICE_KEY?: string;
     SMTP_HOST?: string;
     SMTP_PORT?: number;
     SMTP_USER?: string;

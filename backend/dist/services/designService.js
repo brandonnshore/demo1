@@ -23,17 +23,33 @@ const getUserDesigns = async (userId) => {
 };
 exports.getUserDesigns = getUserDesigns;
 const getDesignById = async (designId, userId) => {
-    const result = await database_1.default.query(`SELECT sd.*, p.title as product_title, p.slug as product_slug
+    const result = await database_1.default.query(`SELECT sd.*, p.title as product_title, p.slug as product_slug, v.color as variant_color, v.size as variant_size
      FROM saved_designs sd
      LEFT JOIN products p ON sd.product_id = p.id
+     LEFT JOIN variants v ON sd.variant_id = v.id
      WHERE sd.id = $1 AND sd.user_id = $2`, [designId, userId]);
     if (result.rows.length === 0) {
         return null;
     }
-    return result.rows[0];
+    const design = result.rows[0];
+    // Fetch artwork URLs from assets table
+    if (design.artwork_ids && Array.isArray(design.artwork_ids) && design.artwork_ids.length > 0) {
+        const artworkResult = await database_1.default.query(`SELECT id, file_url FROM assets WHERE id = ANY($1)`, [design.artwork_ids]);
+        // Create a map of asset IDs to URLs
+        const artworkUrls = {};
+        artworkResult.rows.forEach((row) => {
+            artworkUrls[row.id] = row.file_url;
+        });
+        design.artwork_urls = artworkUrls;
+    }
+    return design;
 };
 exports.getDesignById = getDesignById;
 const updateDesignById = async (designId, userId, params) => {
+    console.log('[BACKEND] Updating design with params:', {
+        variantId: params.variantId,
+        hasVariantId: params.variantId !== undefined
+    });
     // First check if design belongs to user
     const existing = await (0, exports.getDesignById)(designId, userId);
     if (!existing) {

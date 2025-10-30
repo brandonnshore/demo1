@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cartStore';
 import { orderAPI } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import PaymentRequestButton from '../components/PaymentRequestButton';
+import { trackPurchase, trackBeginCheckout } from '../utils/analytics';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -16,6 +17,13 @@ function CheckoutForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Track begin_checkout event when component mounts
+  useEffect(() => {
+    if (items.length > 0) {
+      trackBeginCheckout(getTotalPrice(), items);
+    }
+  }, []); // Run only once on mount
 
   // Form state
   const [customerInfo, setCustomerInfo] = useState({
@@ -79,6 +87,9 @@ function CheckoutForm() {
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Capture payment
         await orderAPI.capturePayment(order.id, paymentIntent.id);
+
+        // Track purchase in Google Analytics
+        trackPurchase(order.order_number, getTotalPrice(), items);
 
         // Clear cart
         clearCart();
@@ -149,6 +160,9 @@ function CheckoutForm() {
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Capture payment
         await orderAPI.capturePayment(order.id, paymentIntent.id);
+
+        // Track purchase in Google Analytics
+        trackPurchase(order.order_number, getTotalPrice(), items);
 
         // Clear cart
         clearCart();

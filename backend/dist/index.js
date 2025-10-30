@@ -24,6 +24,8 @@ const designs_1 = __importDefault(require("./routes/designs"));
 // Import middleware
 const errorHandler_1 = require("./middleware/errorHandler");
 const notFound_1 = require("./middleware/notFound");
+// Import storage initialization
+const supabaseStorage_1 = require("./services/supabaseStorage");
 const app = (0, express_1.default)();
 // Trust proxy - Railway uses a reverse proxy (one hop)
 app.set('trust proxy', 1);
@@ -99,12 +101,14 @@ app.use('/api/designs', designs_1.default);
 app.use(notFound_1.notFound);
 app.use(errorHandler_1.errorHandler);
 // Start server
-const server = app.listen(env_1.env.PORT, () => {
+const server = app.listen(env_1.env.PORT, async () => {
     logger_1.logger.info('Raspberry API Server started', {
         port: env_1.env.PORT,
         environment: env_1.env.NODE_ENV,
         apiUrl: `http://localhost:${env_1.env.PORT}`,
     });
+    // Initialize Supabase Storage bucket
+    await (0, supabaseStorage_1.initializeStorage)();
 });
 // Graceful shutdown handler
 const shutdown = async (signal) => {

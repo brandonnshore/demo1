@@ -8,6 +8,7 @@ import TShirtCanvas from './TShirtCanvas';
 import { useAuth } from '../contexts/AuthContext';
 import SaveDesignModal from './SaveDesignModal';
 import Toast from './Toast';
+import { trackCustomizationStarted, trackDesignSaved } from '../utils/analytics';
 
 interface CustomizerProps {
   product: Product;
@@ -26,6 +27,11 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
   const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
   const hasLoadedDesignRef = useRef<string | null>(null);
+
+  // Track customization started
+  useEffect(() => {
+    trackCustomizationStarted(product.title);
+  }, []); // Run only once on mount
 
   // Selection state
   const [selectedColor, setSelectedColor] = useState('');
@@ -576,6 +582,9 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         });
         setLoadedDesignId(saved.id);
         setSavedDesignName(designName);
+
+        // Track design saved in Google Analytics
+        trackDesignSaved(designName);
       }
     } catch (error: any) {
       console.error('Error saving design:', error);
