@@ -74,3 +74,40 @@ export const getUserById = async (id: string): Promise<User | null> => {
 
   return result.rows[0];
 };
+
+export const syncOAuthUser = async (email: string, name: string, supabaseId: string): Promise<{ user: User; token: string }> => {
+  // Check if user exists
+  const existingUser = await pool.query(
+    'SELECT * FROM users WHERE email = $1',
+    [email]
+  );
+
+  let user;
+
+  if (existingUser.rows.length === 0) {
+    // Create new OAuth user with a hashed random password they'll never use
+    const oauthPassword = await bcrypt.hash(`oauth-${supabaseId}-${Date.now()}`, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, name, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, name, role, created_at, updated_at`,
+      [email, oauthPassword, name, 'fulfillment']
+    );
+
+    user = result.rows[0];
+  } else {
+    // User exists, just return them
+    user = existingUser.rows[0];
+    // Remove password from response
+    delete user.password_hash;
+  }
+
+  // Generate token
+  const payload = { id: user.id, email: user.email, role: user.role };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: SignOptions = { expiresIn: env.JWT_EXPIRES_IN as any };
+  const token = jwt.sign(payload, env.JWT_SECRET, options);
+
+  return { user, token };
+};

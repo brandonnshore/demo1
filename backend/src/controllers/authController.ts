@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
-import { loginUser, registerUser, getUserById } from '../services/authService';
+import { loginUser, registerUser, getUserById, syncOAuthUser } from '../services/authService';
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -56,6 +56,25 @@ export const me = async (req: AuthRequest, res: Response, next: NextFunction) =>
     res.status(200).json({
       success: true,
       data: { user }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const oauthSync = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, name, supabaseId } = req.body;
+
+    if (!email || !name || !supabaseId) {
+      throw new ApiError(400, 'Email, name, and supabaseId are required');
+    }
+
+    const result = await syncOAuthUser(email, name, supabaseId);
+
+    res.status(200).json({
+      success: true,
+      data: result
     });
   } catch (error) {
     next(error);
