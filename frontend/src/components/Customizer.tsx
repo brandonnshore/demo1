@@ -25,6 +25,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [searchParams] = useSearchParams();
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
   const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
+  const hasLoadedDesignRef = useRef<string | null>(null);
 
   // Selection state
   const [selectedColor, setSelectedColor] = useState('');
@@ -111,10 +112,11 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   // Load design from URL param if present
   useEffect(() => {
     const designId = searchParams.get('designId');
-    if (designId && isAuthenticated) {
+    if (designId && isAuthenticated && variants.length > 0 && hasLoadedDesignRef.current !== designId) {
+      hasLoadedDesignRef.current = designId;
       loadDesign(designId);
     }
-  }, [searchParams, isAuthenticated]);
+  }, [searchParams, isAuthenticated, variants]);
 
   // Load cart item for editing if present
   useEffect(() => {
@@ -147,6 +149,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const loadDesign = async (designId: string) => {
     try {
       const design = await designAPI.getById(designId);
+      console.log('[LOAD] Full design object:', JSON.stringify(design, null, 2));
       setLoadedDesignId(design.id);
       setSavedDesignName(design.name); // Set the saved design name
 
@@ -208,13 +211,61 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         }
       }
 
-      // Set color/size if available
-      if (design.variant_id) {
-        const variant = variants.find(v => v.id === design.variant_id);
+      // Set color/size/variant if available
+      console.log('[LOAD] Design variant_id:', design.variant_id);
+      console.log('[LOAD] Design variant_color:', design.variant_color);
+      console.log('[LOAD] Design variant_size:', design.variant_size);
+      console.log('[LOAD] Design data color/size:', design.design_data?.selectedColor, design.design_data?.selectedSize);
+
+      // PRIORITY: design_data.selectedColor takes precedence over variant_color
+      // This is because Navy (and other UI-only colors) are stored in design_data
+      let colorToSet = null;
+      let sizeToSet = null;
+
+      // First: Check design_data for the most recent color selection
+      if (design.design_data?.selectedColor) {
+        console.log('[LOAD] Using color from design_data (highest priority):', design.design_data.selectedColor);
+        colorToSet = design.design_data.selectedColor;
+        sizeToSet = design.design_data.selectedSize || 'M';
+
+        // Try to find a matching variant for this color
+        const variant = variants.find(v => v.color === colorToSet && v.size === sizeToSet);
         if (variant) {
-          setSelectedColor(variant.color);
-          setSelectedSize(variant.size);
+          console.log('[LOAD] Found matching variant for design_data color:', variant);
+          setSelectedVariant(variant);
+        } else {
+          console.log('[LOAD] No variant found for color:', colorToSet, '(UI-only color like Navy)');
         }
+      }
+      // Second: Fall back to variant_id/variant_color if no design_data
+      else if (design.variant_id) {
+        let variant = variants.find(v => v.id === design.variant_id);
+        console.log('[LOAD] Found variant by ID:', variant);
+
+        // If variant not found by ID, try to find by color and size from JOIN
+        if (!variant && design.variant_color && design.variant_size) {
+          console.log('[LOAD] Variant ID not found, trying color/size lookup:', design.variant_color, design.variant_size);
+          variant = variants.find(v => v.color === design.variant_color && v.size === design.variant_size);
+          console.log('[LOAD] Found variant by color/size:', variant);
+        }
+
+        if (variant) {
+          console.log('[LOAD] Setting color/size/variant from variant:', variant.color, variant.size);
+          colorToSet = variant.color;
+          sizeToSet = variant.size;
+          setSelectedVariant(variant);
+        } else if (design.variant_color) {
+          // No variant found, but we have color info from JOIN
+          console.log('[LOAD] No variant found, using color from JOIN:', design.variant_color);
+          colorToSet = design.variant_color;
+          sizeToSet = design.variant_size;
+        }
+      }
+
+      // Apply the color and size
+      if (colorToSet) {
+        setSelectedColor(colorToSet);
+        setSelectedSize(sizeToSet || 'M');
       }
     } catch (error) {
       console.error('Error loading design:', error);
@@ -442,7 +493,10 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       const designData = {
         front: frontArtworks.map(a => a.position),
         back: backArtworks.map(a => a.position),
-        neck: neckArtwork ? [neckArtwork.position] : []
+        neck: neckArtwork ? [neckArtwork.position] : [],
+        // Store color and size in design_data for colors without variants (like Navy)
+        selectedColor: selectedColor,
+        selectedSize: selectedSize || 'M'
       };
 
       // Collect all artwork asset IDs from all views
@@ -472,9 +526,24 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
       if (loadedDesignId) {
         // Update existing design
+        // Make sure we have the latest variant based on current color/size
+        // Use 'M' as default size if no size selected
+        const variantSize = selectedSize || 'M';
+        const currentVariant = selectedVariant ||
+          (selectedColor
+            ? variants.find(v => v.color === selectedColor && v.size === variantSize)
+            : null);
+
+        console.log('[SAVE] Updating design with variant:', {
+          variantId: currentVariant?.id,
+          color: selectedColor,
+          size: selectedSize,
+          variant: currentVariant
+        });
+
         await designAPI.update(loadedDesignId, {
           name: designName,
-          variantId: selectedVariant?.id,
+          variantId: currentVariant?.id,
           designData,
           artworkIds,
           thumbnailUrl
@@ -482,10 +551,25 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         setSavedDesignName(designName);
       } else {
         // Save new design
+        // Make sure we have the latest variant based on current color/size
+        // Use 'M' as default size if no size selected
+        const variantSize = selectedSize || 'M';
+        const currentVariant = selectedVariant ||
+          (selectedColor
+            ? variants.find(v => v.color === selectedColor && v.size === variantSize)
+            : null);
+
+        console.log('[SAVE] Saving new design with variant:', {
+          variantId: currentVariant?.id,
+          color: selectedColor,
+          size: selectedSize,
+          variant: currentVariant
+        });
+
         const saved = await designAPI.save({
           name: designName,
           productId: product.id,
-          variantId: selectedVariant?.id,
+          variantId: currentVariant?.id,
           designData,
           artworkIds,
           thumbnailUrl

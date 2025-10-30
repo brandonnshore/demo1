@@ -62,9 +62,10 @@ export const getUserDesigns = async (userId: string): Promise<SavedDesign[]> => 
 
 export const getDesignById = async (designId: string, userId: string): Promise<SavedDesign | null> => {
   const result = await pool.query(
-    `SELECT sd.*, p.title as product_title, p.slug as product_slug
+    `SELECT sd.*, p.title as product_title, p.slug as product_slug, v.color as variant_color, v.size as variant_size
      FROM saved_designs sd
      LEFT JOIN products p ON sd.product_id = p.id
+     LEFT JOIN variants v ON sd.variant_id = v.id
      WHERE sd.id = $1 AND sd.user_id = $2`,
     [designId, userId]
   );
@@ -99,6 +100,11 @@ export const updateDesignById = async (
   userId: string,
   params: UpdateDesignParams
 ): Promise<SavedDesign | null> => {
+  console.log('[BACKEND] Updating design with params:', {
+    variantId: params.variantId,
+    hasVariantId: params.variantId !== undefined
+  });
+
   // First check if design belongs to user
   const existing = await getDesignById(designId, userId);
   if (!existing) {
