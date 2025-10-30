@@ -89,6 +89,13 @@ export const authAPI = {
     return response.data.data.user;
   },
 
+  oauthSync: async (email: string, name: string, supabaseId: string) => {
+    const response = await api.post('/auth/oauth/sync', { email, name, supabaseId });
+    const { token, user } = response.data.data;
+    localStorage.setItem('auth_token', token);
+    return { token, user };
+  },
+
   me: async () => {
     const response = await api.get('/auth/me');
     return response.data.data.user;
