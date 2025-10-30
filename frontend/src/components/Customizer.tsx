@@ -148,6 +148,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     try {
       const design = await designAPI.getById(designId);
       setLoadedDesignId(design.id);
+      setSavedDesignName(design.name); // Set the saved design name
 
       // Create array of all artwork IDs in order (front, back, neck)
       const allArtworkIds = design.artwork_ids || [];
@@ -413,14 +414,28 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     }
   };
 
-  const handleSaveDesign = () => {
+  const handleSaveDesign = async () => {
     if (!isAuthenticated) {
       // Redirect to login, then back to this page
       navigate('/login', { state: { from: window.location.pathname + window.location.search } });
       return;
     }
 
-    // Open the modal
+    // If updating existing design, save directly without modal
+    if (loadedDesignId && savedDesignName) {
+      try {
+        await performSaveDesign(savedDesignName);
+        setToastMessage('Design updated successfully!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (error) {
+        console.error('Error updating design:', error);
+        alert('Failed to update design');
+      }
+      return;
+    }
+
+    // Otherwise, open the modal for new design
     setShowSaveModal(true);
   };
 
@@ -632,6 +647,18 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                 } else if (view === 'back') {
                   const updated = [...backArtworks];
                   updated[index] = { ...updated[index], position: pos };
+                  setBackArtworks(updated);
+                }
+              }}
+              onArtworkDelete={(index) => {
+                // Delete artwork from current view
+                if (view === 'front') {
+                  const updated = frontArtworks.filter((_, i) => i !== index);
+                  setFrontArtworks(updated);
+                } else if (view === 'neck') {
+                  setNeckArtwork(null);
+                } else if (view === 'back') {
+                  const updated = backArtworks.filter((_, i) => i !== index);
                   setBackArtworks(updated);
                 }
               }}

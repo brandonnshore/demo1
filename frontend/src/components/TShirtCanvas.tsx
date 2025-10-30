@@ -8,6 +8,7 @@ interface TShirtCanvasProps {
   artworkPosition?: any;
   artworks?: Array<{url: string, position: any}>;
   onArtworkPositionChange?: (data: any, index: number) => void;
+  onArtworkDelete?: (index: number) => void;
   view?: 'front' | 'neck' | 'back';
 }
 
@@ -15,6 +16,7 @@ const TShirtCanvas = forwardRef(({
   tshirtColor = 'white',
   artworks = [],
   onArtworkPositionChange,
+  onArtworkDelete,
   view = 'front'
 }: TShirtCanvasProps, ref) => {
   const [tshirtImage, setTshirtImage] = useState<HTMLImageElement | null>(null);
@@ -265,6 +267,23 @@ const TShirtCanvas = forwardRef(({
     setTshirtImage(nextImg);
     activeView.current = view;
   }, [view]);
+
+  // Handle keyboard delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && onArtworkDelete) {
+        // Extract index from selectedId (format: "artwork-0", "artwork-1", etc.)
+        const index = parseInt(selectedId.split('-')[1]);
+        if (!isNaN(index)) {
+          onArtworkDelete(index);
+          setSelectedId(null); // Deselect after deleting
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, onArtworkDelete]);
 
   // Cache for loaded artwork images by URL
   const artworkImageCache = useRef<Map<string, HTMLImageElement>>(new Map());
