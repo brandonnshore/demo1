@@ -5,4 +5,8 @@ export declare const loginUser: (email: string, password: string) => Promise<{
     token: string;
 }>;
 export declare const getUserById: (id: string) => Promise<User | null>;
+export declare const syncOAuthUser: (email: string, name: string, supabaseId: string) => Promise<{
+    user: User;
+    token: string;
+}>;
 //# sourceMappingURL=authService.d.ts.map

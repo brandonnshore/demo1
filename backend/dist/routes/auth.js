@@ -6,6 +6,7 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.post('/login', authController_1.login);
 router.post('/register', authController_1.register);
+router.post('/oauth/sync', authController_1.oauthSync);
 router.get('/me', auth_1.authenticate, authController_1.me);
 exports.default = router;
 //# sourceMappingURL=auth.js.map

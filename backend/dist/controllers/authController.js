@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.me = exports.register = exports.login = void 0;
+exports.oauthSync = exports.me = exports.register = exports.login = void 0;
 const errorHandler_1 = require("../middleware/errorHandler");
 const authService_1 = require("../services/authService");
 const login = async (req, res, next) => {
@@ -56,4 +56,21 @@ const me = async (req, res, next) => {
     }
 };
 exports.me = me;
+const oauthSync = async (req, res, next) => {
+    try {
+        const { email, name, supabaseId } = req.body;
+        if (!email || !name || !supabaseId) {
+            throw new errorHandler_1.ApiError(400, 'Email, name, and supabaseId are required');
+        }
+        const result = await (0, authService_1.syncOAuthUser)(email, name, supabaseId);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.oauthSync = oauthSync;
 //# sourceMappingURL=authController.js.map
