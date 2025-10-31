@@ -10,6 +10,7 @@ interface TShirtCanvasProps {
   onArtworkPositionChange?: (data: any, index: number) => void;
   onArtworkDelete?: (index: number) => void;
   view?: 'front' | 'neck' | 'back';
+  productSlug?: string; // 'classic-tee' or 'classic-hoodie'
 }
 
 const TShirtCanvas = forwardRef(({
@@ -17,7 +18,8 @@ const TShirtCanvas = forwardRef(({
   artworks = [],
   onArtworkPositionChange,
   onArtworkDelete,
-  view = 'front'
+  view = 'front',
+  productSlug = 'classic-tee'
 }: TShirtCanvasProps, ref) => {
   const [tshirtImage, setTshirtImage] = useState<HTMLImageElement | null>(null);
   const [artworkImages, setArtworkImages] = useState<HTMLImageElement[]>([]);
@@ -99,11 +101,22 @@ const TShirtCanvas = forwardRef(({
     }
   }));
 
-  // Helper function to get image paths based on color
+  // Helper function to get image paths based on color and product type
   const getImagePaths = (color: string) => {
     const colorLower = color.toLowerCase();
+    const isHoodie = productSlug === 'classic-hoodie';
 
-    // Map color to image files
+    // If it's a hoodie, use hoodie images
+    if (isHoodie) {
+      // For now, only black hoodie exists, so default to black
+      return {
+        front: '/uploads/hoodie-black-front.png',
+        back: '/uploads/hoodie-black-back.png',
+        neck: '/uploads/hoodie-black-back.png', // Use back as neck for now
+      };
+    }
+
+    // T-shirt images
     if (colorLower === 'navy') {
       return {
         front: '/assets/navy-front.png',
@@ -181,8 +194,18 @@ const TShirtCanvas = forwardRef(({
           width = containerMaxHeight * aspectRatio;
         }
 
-        // Apply color-specific back view scaling to match front/back sizes
-        if (view === 'back') {
+        // Apply product-specific and color-specific scaling
+        const isHoodie = productSlug === 'classic-hoodie';
+
+        if (isHoodie && view === 'front') {
+          // Scale up hoodie front to match back size
+          width = width * 1.15;
+          height = height * 1.15;
+        } else if (isHoodie && view === 'back') {
+          // Scale up hoodie back
+          width = width * 1.15;
+          height = height * 1.15;
+        } else if (view === 'back') {
           const colorLower = tshirtColor?.toLowerCase() || '';
 
           if (colorLower === 'white' || colorLower === '') {
@@ -202,7 +225,7 @@ const TShirtCanvas = forwardRef(({
 
       setTshirtImage(currentViewImg);
     });
-  }, [tshirtColor, view]);
+  }, [tshirtColor, view, productSlug]);
 
   // Instant view switching - no transition
   useEffect(() => {
@@ -413,7 +436,7 @@ const TShirtCanvas = forwardRef(({
             <KonvaImage
               image={tshirtImage}
               x={0}
-              y={0}
+              y={productSlug === 'classic-hoodie' && view === 'back' ? -20 : 0}
               width={tshirtDimensions.width}
               height={tshirtDimensions.height}
               onClick={() => setSelectedId(null)}

@@ -726,6 +726,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             <TShirtCanvas
               ref={canvasRef}
               tshirtColor={selectedColor}
+              productSlug={product.slug}
               artworks={getCurrentArtworks()}
               onArtworkPositionChange={(pos, index) => {
                 // Save position to current view's artwork at specific index
