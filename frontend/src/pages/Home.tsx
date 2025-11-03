@@ -212,7 +212,11 @@ export default function Home() {
                   {/* Product info */}
                   <div className="text-center">
                     <p className="text-sm font-medium mb-1">{product.title}</p>
-                    <p className="text-sm text-gray-600">from $12.98</p>
+                    {product.variants && product.variants.length > 0 && (
+                      <p className="text-sm text-gray-600">
+                        from ${Number(product.variants[0].base_price).toFixed(2)}
+                      </p>
+                    )}
                   </div>
                 </Link>
               ))}
