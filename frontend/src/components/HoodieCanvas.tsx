@@ -299,7 +299,7 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
                 <KonvaImage
                   ref={(el) => { imageRefs.current[index] = el; }}
                   image={artworkImg}
-                  x={artwork.position?.x ?? 200 + index * 20}
+                  x={artwork.position?.x ?? 270 + index * 20}
                   y={artwork.position?.y ?? 250 + index * 20}
                   width={width}
                   height={height}
@@ -315,8 +315,8 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
                       minY: 100,
                       maxY: 650
                     } : {
-                      minX: 80,
-                      maxX: 470,
+                      minX: 150,
+                      maxX: 540,
                       minY: 100,
                       maxY: 650
                     };
