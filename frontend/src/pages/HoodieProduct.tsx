@@ -65,10 +65,10 @@ export default function HoodieProduct() {
   const [backArtworks, setBackArtworks] = useState<Artwork[]>([]);
   const [neckArtwork, setNeckArtwork] = useState<Artwork | null>(null);
 
+  const [colorSectionOpen, setColorSectionOpen] = useState(true);
   const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
   const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
   const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
-  const [colorSectionOpen, setColorSectionOpen] = useState(false);
 
   const getCurrentArtworks = (): Artwork[] => {
     if (view === 'front') return frontArtworks;
@@ -477,6 +477,45 @@ export default function HoodieProduct() {
         <div className="bg-white border-l border-gray-200 overflow-y-auto">
           <div className="p-5 space-y-1">
 
+            {/* Garment Color Section */}
+            <div className="border-t border-gray-200 pt-5 pb-4">
+              <button
+                onClick={() => setColorSectionOpen(!colorSectionOpen)}
+                className="w-full flex items-center justify-between mb-4 group"
+              >
+                <h3 className="text-sm font-semibold">Garment Color</h3>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-5 h-5 rounded-full border border-gray-300"
+                    style={{
+                      backgroundColor: '#000000'
+                    }}
+                  ></span>
+                  <span className="text-gray-400 group-hover:text-gray-600">
+                    {colorSectionOpen ? '−' : '+'}
+                  </span>
+                </div>
+              </button>
+
+              {colorSectionOpen && (
+                <div className="space-y-4">
+                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-3">Pre-developed</div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      className="flex items-center gap-2.5 p-2.5 rounded-md border border-gray-900 bg-gray-50 transition-all"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
+                        style={{
+                          backgroundColor: '#000000'
+                        }}
+                      ></div>
+                      <span className="text-xs font-medium">Black</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Front Artwork Section */}
             <div className="border-t border-gray-200 pt-5 pb-4">
@@ -669,46 +708,6 @@ export default function HoodieProduct() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-            </div>
-
-            {/* Garment Color Section */}
-            <div className="border-t border-gray-200 pt-5 pb-4">
-              <button
-                onClick={() => setColorSectionOpen(!colorSectionOpen)}
-                className="w-full flex items-center justify-between mb-4 group"
-              >
-                <h3 className="text-sm font-semibold">Garment Color</h3>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="w-5 h-5 rounded-full border border-gray-300"
-                    style={{
-                      backgroundColor: '#000000'
-                    }}
-                  ></span>
-                  <span className="text-gray-400 group-hover:text-gray-600">
-                    {colorSectionOpen ? '−' : '+'}
-                  </span>
-                </div>
-              </button>
-
-              {colorSectionOpen && (
-                <div className="space-y-4">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-3">Pre-developed</div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button
-                      className="flex items-center gap-2.5 p-2.5 rounded-md border border-gray-900 bg-gray-50 transition-all"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
-                        style={{
-                          backgroundColor: '#000000'
-                        }}
-                      ></div>
-                      <span className="text-xs font-medium">Black</span>
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
