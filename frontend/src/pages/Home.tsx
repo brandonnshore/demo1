@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { productAPI } from '../services/api';
 import { Product } from '../types';
 
 export default function Home() {
@@ -9,8 +8,8 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
-    // Load mock data immediately for instant display
-    const mockProducts = [
+    // Hardcoded products - no API calls
+    const products = [
       {
         id: '1',
         title: 'Classic Cotton T-Shirt',
@@ -27,7 +26,7 @@ export default function Home() {
         title: 'Classic Hoodie',
         slug: 'hoodie',
         description: 'Premium heavyweight hoodie',
-        images: ['/uploads/hoodie-black-front.png'],
+        images: ['/assets/hoodie-black-front.png'],
         status: 'active' as const,
         variants: [
           { id: '2', product_id: '2', color: 'Black', size: 'M', sku: 'HOODIE-BLK-M', base_price: 35.99, stock_level: 100 }
@@ -35,26 +34,8 @@ export default function Home() {
       }
     ];
 
-    setProducts(mockProducts);
+    setProducts(products);
     setLoading(false);
-
-    // Try to fetch real data in background, but keep hoodie from mock
-    productAPI.getAll()
-      .then(data => {
-        if (data && data.length > 0) {
-          // Find hoodie in mock data to preserve it
-          const mockHoodie = mockProducts.find((p: Product) => p.slug === 'hoodie');
-          // Replace API data with combined data (API products + mock hoodie)
-          const combinedProducts = [...data.filter((p: Product) => p.slug !== 'hoodie')];
-          if (mockHoodie) {
-            combinedProducts.push(mockHoodie);
-          }
-          setProducts(combinedProducts);
-        }
-      })
-      .catch(err => {
-        console.log('Using mock data, API unavailable:', err.message);
-      });
   }, []);
 
   const categories = ['T-Shirts', 'Hoodies', 'Sportswear', 'Hats & Bags', 'Women'];
