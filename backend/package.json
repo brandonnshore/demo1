@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r public dist/",
     "start": "node dist/index.js",
     "migrate": "node -r ts-node/register migrations/run.ts",
     "migrate:create": "node -r ts-node/register migrations/create.ts",
