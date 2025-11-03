@@ -6,7 +6,6 @@ import { Product } from '../types';
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error] = useState<string | null>(null);
 
   useEffect(() => {
     // Load mock data immediately for instant display
@@ -56,19 +55,6 @@ export default function Products() {
         <div className="text-center py-16">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           <p className="mt-4 text-gray-600">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center py-16">
-          <p className="text-red-600 text-lg">{error}</p>
-          <p className="text-gray-500 mt-4">
-            Make sure the backend server is running and the database is set up.
-          </p>
         </div>
       </div>
     );

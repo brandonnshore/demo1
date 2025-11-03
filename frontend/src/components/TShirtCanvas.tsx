@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer } from 'react-konva';
 import Konva from 'konva';
+import { CANVAS_CONFIG, TSHIRT_BOUNDS } from '../constants/canvas';
 
 interface TShirtCanvasProps {
   tshirtColor?: string;
@@ -20,7 +21,6 @@ const TShirtCanvas = forwardRef(({
   const [tshirtImage, setTshirtImage] = useState<HTMLImageElement | null>(null);
   const [artworkImages, setArtworkImages] = useState<HTMLImageElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [error] = useState<string | null>(null);
   const imageRefs = useRef<(Konva.Image | null)[]>([]);
   const trRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
@@ -44,56 +44,44 @@ const TShirtCanvas = forwardRef(({
   // Expose download function to parent component
   useImperativeHandle(ref, () => ({
     downloadImage: () => {
-      if (stageRef.current) {
-        // Export at higher resolution for better quality
-        const uri = stageRef.current.toDataURL({
-          pixelRatio: 3, // 3x resolution for high quality
-          mimeType: 'image/png',
-          quality: 1 // Maximum quality
-        });
-        const link = document.createElement('a');
-        link.download = 'tshirt-design.png';
-        link.href = uri;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+      if (!stageRef.current) return;
+      const uri = stageRef.current.toDataURL({
+        pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_HIGH,
+        mimeType: 'image/png',
+        quality: CANVAS_CONFIG.EXPORT_QUALITY_HIGH
+      });
+      const link = document.createElement('a');
+      link.download = 'tshirt-design.png';
+      link.href = uri;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     },
     getThumbnail: () => {
-      if (stageRef.current) {
-        // Export smaller thumbnail for previews
-        return stageRef.current.toDataURL({
-          pixelRatio: 1,
-          mimeType: 'image/png',
-          quality: 0.8
-        });
-      }
-      return null;
+      if (!stageRef.current) return null;
+      return stageRef.current.toDataURL({
+        pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_LOW,
+        mimeType: 'image/png',
+        quality: CANVAS_CONFIG.EXPORT_QUALITY_LOW
+      });
     },
     captureImage: () => {
-      // Alias for getThumbnail - captures current canvas as image for cart mockup
-      if (stageRef.current) {
-        return stageRef.current.toDataURL({
-          pixelRatio: 2,
-          mimeType: 'image/png',
-          quality: 0.9
-        });
-      }
-      return null;
+      if (!stageRef.current) return null;
+      return stageRef.current.toDataURL({
+        pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_MEDIUM,
+        mimeType: 'image/png',
+        quality: CANVAS_CONFIG.EXPORT_QUALITY_MEDIUM
+      });
     },
     getThumbnailBlob: async (): Promise<Blob | null> => {
-      if (stageRef.current) {
-        const dataUrl = stageRef.current.toDataURL({
-          pixelRatio: 1,
-          mimeType: 'image/png',
-          quality: 0.8
-        });
-
-        // Convert data URL to Blob
-        const response = await fetch(dataUrl);
-        return await response.blob();
-      }
-      return null;
+      if (!stageRef.current) return null;
+      const dataUrl = stageRef.current.toDataURL({
+        pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_LOW,
+        mimeType: 'image/png',
+        quality: CANVAS_CONFIG.EXPORT_QUALITY_LOW
+      });
+      const response = await fetch(dataUrl);
+      return await response.blob();
     }
   }));
 
@@ -234,16 +222,14 @@ const TShirtCanvas = forwardRef(({
 
       setTshirtDimensions({ width, height });
     } else {
-      const containerMaxWidth = 600;
-      const containerMaxHeight = 700;
       const aspectRatio = nextImg.width / nextImg.height;
 
-      let width = containerMaxWidth;
-      let height = containerMaxWidth / aspectRatio;
+      let width = CANVAS_CONFIG.CONTAINER_MAX_WIDTH;
+      let height = CANVAS_CONFIG.CONTAINER_MAX_WIDTH / aspectRatio;
 
-      if (height > containerMaxHeight) {
-        height = containerMaxHeight;
-        width = containerMaxHeight * aspectRatio;
+      if (height > CANVAS_CONFIG.CONTAINER_MAX_HEIGHT) {
+        height = CANVAS_CONFIG.CONTAINER_MAX_HEIGHT;
+        width = CANVAS_CONFIG.CONTAINER_MAX_HEIGHT * aspectRatio;
       }
 
       // Apply color-specific back view scaling to match front/back sizes
@@ -373,17 +359,6 @@ const TShirtCanvas = forwardRef(({
     }
   };
 
-  if (error) {
-    return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 mb-2">{error}</p>
-          <p className="text-xs text-gray-400">Using fallback preview</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {/* Instructions overlay - Absolutely positioned above shirt */}
@@ -436,16 +411,14 @@ const TShirtCanvas = forwardRef(({
             const artwork = artworks[index];
             if (!artwork) return null;
 
-            const maxWidth = 250;
-            const maxHeight = 250;
             const aspectRatio = artworkImg.width / artworkImg.height;
 
-            let width = maxWidth;
-            let height = maxWidth / aspectRatio;
+            let width = CANVAS_CONFIG.ARTWORK_MAX_WIDTH;
+            let height = CANVAS_CONFIG.ARTWORK_MAX_WIDTH / aspectRatio;
 
-            if (height > maxHeight) {
-              height = maxHeight;
-              width = maxHeight * aspectRatio;
+            if (height > CANVAS_CONFIG.ARTWORK_MAX_HEIGHT) {
+              height = CANVAS_CONFIG.ARTWORK_MAX_HEIGHT;
+              width = CANVAS_CONFIG.ARTWORK_MAX_HEIGHT * aspectRatio;
             }
 
             return (
@@ -462,34 +435,11 @@ const TShirtCanvas = forwardRef(({
                   rotation={artwork.position?.rotation ?? 0}
                   draggable
                 dragBoundFunc={(pos) => {
-                  // Define boundaries based on view
-                  let shirtBounds;
-
-                  if (view === 'neck') {
-                    // Neck label area bounds (red rectangle in your screenshot)
-                    shirtBounds = {
-                      minX: 520,
-                      maxX: 1080,
-                      minY: 560,
-                      maxY: 710
-                    };
-                  } else if (view === 'back') {
-                    // Back t-shirt boundaries - adjusted to match back shirt printable area
-                    shirtBounds = {
-                      minX: 140,
-                      maxX: 510,
-                      minY: 100,
-                      maxY: 550
-                    };
-                  } else {
-                    // Front t-shirt boundaries
-                    shirtBounds = {
-                      minX: 80,
-                      maxX: 470,
-                      minY: 100,
-                      maxY: 550
-                    };
-                  }
+                  const shirtBounds = view === 'neck'
+                    ? TSHIRT_BOUNDS.NECK
+                    : view === 'back'
+                    ? TSHIRT_BOUNDS.BACK
+                    : TSHIRT_BOUNDS.FRONT;
 
                   // Get current image dimensions
                   const node = imageRefs.current[index];
@@ -537,12 +487,10 @@ const TShirtCanvas = forwardRef(({
                   ref={trRef}
                   keepRatio={true}
                   boundBoxFunc={(oldBox, newBox) => {
-                    // Limit resize
-                    if (newBox.width < 50 || newBox.height < 50) {
+                    if (newBox.width < CANVAS_CONFIG.ARTWORK_MIN_SIZE || newBox.height < CANVAS_CONFIG.ARTWORK_MIN_SIZE) {
                       return oldBox;
                     }
-                    // Limit maximum size
-                    if (newBox.width > 400 || newBox.height > 400) {
+                    if (newBox.width > CANVAS_CONFIG.ARTWORK_MAX_RESIZE || newBox.height > CANVAS_CONFIG.ARTWORK_MAX_RESIZE) {
                       return oldBox;
                     }
                     return newBox;

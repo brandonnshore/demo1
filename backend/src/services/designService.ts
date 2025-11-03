@@ -100,12 +100,6 @@ export const updateDesignById = async (
   userId: string,
   params: UpdateDesignParams
 ): Promise<SavedDesign | null> => {
-  console.log('[BACKEND] Updating design with params:', {
-    variantId: params.variantId,
-    hasVariantId: params.variantId !== undefined
-  });
-
-  // First check if design belongs to user
   const existing = await getDesignById(designId, userId);
   if (!existing) {
     return null;

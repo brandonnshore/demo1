@@ -96,7 +96,6 @@ export default function ProductDetail() {
     <Customizer
       product={data.product}
       variants={data.product.variants}
-      decorationMethods={data.decorationMethods}
     />
   );
 }

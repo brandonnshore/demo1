@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Product, Variant, DecorationMethod } from '../types';
+import { Product, Variant } from '../types';
 import { uploadAPI, designAPI } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -10,11 +10,14 @@ import { useAuth } from '../contexts/AuthContext';
 import SaveDesignModal from './SaveDesignModal';
 import Toast from './Toast';
 import { trackCustomizationStarted, trackDesignSaved } from '../utils/analytics';
+import { TSHIRT_BASE_PRICE, calculateUnitCost } from '../constants/pricing';
+import { SIZES, MAX_ARTWORKS_PER_VIEW } from '../constants/products';
+import { getFullAssetUrl, createBlobUrl } from '../utils/urlHelpers';
+import { validateImageDPI, promptForLowDPIUpload } from '../utils/imageValidation';
 
 interface CustomizerProps {
   product: Product;
   variants: Variant[];
-  decorationMethods: DecorationMethod[];
 }
 
 export default function Customizer({ product, variants }: CustomizerProps) {
@@ -38,20 +41,14 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-  const [selectedMethod] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   // Customization state - separate for each view
   const [view, setView] = useState<'front' | 'neck' | 'back'>('front');
 
-  // Artwork state per view (now includes assetId for tracking)
   const [frontArtworks, setFrontArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
   const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
   const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
-
-  // Future feature: text input functionality
-  // const [, setTextInput] = useState('');
-  // const [textColor] = useState('#000000');
 
   // Current view's artwork
   const getCurrentArtworks = () => {
@@ -62,10 +59,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   };
 
   const currentArtwork = getCurrentArtworks()[0] || null;
-
-  // Price state removed - using calculateUnitCost() instead
-
-  // Save design modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [savedDesignName, setSavedDesignName] = useState('');
 
@@ -73,39 +66,17 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Calculate unit cost based on artwork
-  const calculateUnitCost = (): number => {
-    let unitCost = 12.98; // Base price
+  const unitCost = calculateUnitCost(
+    frontArtworks.length > 0,
+    backArtworks.length > 0,
+    neckArtwork !== null,
+    TSHIRT_BASE_PRICE
+  );
 
-    // Count how many print locations have artwork
-    const hasFrontArtwork = frontArtworks.length > 0;
-    const hasBackArtwork = backArtworks.length > 0;
-    const hasNeckLabel = neckArtwork !== null;
-
-    // Count print locations (front and back only)
-    const printLocations = [hasFrontArtwork, hasBackArtwork].filter(Boolean).length;
-
-    // Add $5 for second print location (front + back)
-    if (printLocations === 2) {
-      unitCost += 5.00;
-    }
-
-    // Add $1 for neck label (always, regardless of other artworks)
-    if (hasNeckLabel) {
-      unitCost += 1.00;
-    }
-
-    return unitCost;
-  };
-
-  const unitCost = calculateUnitCost();
-
-  // Get unique colors and sizes (add Navy if not present)
   const dbColors = [...new Set(variants.map((v) => v.color))];
   const colors = dbColors.includes('Navy') ? dbColors : [...dbColors, 'Navy'];
   const sizes = [...new Set(variants.map((v) => v.size))].sort((a, b) => {
-    const order = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
-    return order.indexOf(a) - order.indexOf(b);
+    return SIZES.indexOf(a as any) - SIZES.indexOf(b as any);
   });
 
   // Update selected variant when color/size changes
@@ -164,15 +135,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       const allArtworkIds = design.artwork_ids || [];
       const artworkUrls = design.artwork_urls || {};
 
-      // Helper function to get full URL for artwork
-      const getFullUrl = (url: string) => {
-        if (!url) return '';
-        // If URL starts with http, it's already a full URL (Supabase Storage)
-        if (url.startsWith('http')) return url;
-        // Otherwise, prepend API URL (local development)
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        return `${API_URL}${url}`;
-      };
 
       // Track which artwork ID we're currently processing
       let artworkIndex = 0;
@@ -182,7 +144,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         if (design.design_data.front && design.design_data.front.length > 0) {
           const frontArtworkData = design.design_data.front.map((pos: any) => {
             const assetId = allArtworkIds[artworkIndex];
-            const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+            const url = assetId ? getFullAssetUrl(artworkUrls[assetId]) : '';
             artworkIndex++;
             return {
               url: url || '',
@@ -196,7 +158,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         if (design.design_data.back && design.design_data.back.length > 0) {
           const backArtworkData = design.design_data.back.map((pos: any) => {
             const assetId = allArtworkIds[artworkIndex];
-            const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+            const url = assetId ? getFullAssetUrl(artworkUrls[assetId]) : '';
             artworkIndex++;
             return {
               url: url || '',
@@ -209,7 +171,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
         if (design.design_data.neck && design.design_data.neck.length > 0) {
           const assetId = allArtworkIds[artworkIndex];
-          const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
+          const url = assetId ? getFullAssetUrl(artworkUrls[assetId]) : '';
           setNeckArtwork({
             url: url || '',
             position: design.design_data.neck[0],
@@ -280,48 +242,35 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     }
   };
 
-  // Price calculation feature - disabled for now
-  // Future: Re-enable when dynamic pricing is needed
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      // Check DPI for raster images
-      if (file.type === 'image/png' || file.type === 'image/jpeg') {
-        const arrayBuffer = await file.arrayBuffer();
-        const dpi = await checkImageDPI(arrayBuffer, file.type);
-
-        if (dpi && dpi < 300) {
-          const proceed = window.confirm(
-            `Warning: This image has a DPI of ${dpi}, which is below the required 300 DPI for high-quality DTG printing. The print quality may be poor.\n\nDo you want to upload it anyway?`
-          );
-          if (!proceed) {
-            e.target.value = ''; // Reset file input
-            return;
-          }
+      const { valid, dpi } = await validateImageDPI(file);
+      if (!valid && dpi) {
+        if (!promptForLowDPIUpload(dpi)) {
+          e.target.value = '';
+          return;
         }
       }
 
-      // Create a local preview URL immediately for instant feedback
-      const previewUrl = URL.createObjectURL(file);
+      const previewUrl = createBlobUrl(file);
 
       // Add artwork to the appropriate view with temporary blob URL
       const tempArtwork = { url: previewUrl, position: null, assetId: undefined };
 
       if (view === 'front') {
-        if (frontArtworks.length < 4) {
+        if (frontArtworks.length < MAX_ARTWORKS_PER_VIEW) {
           const artworkIndex = frontArtworks.length;
           setFrontArtworks([...frontArtworks, tempArtwork]);
 
-          // Upload to server and update with permanent URL
           uploadAPI.uploadFile(file).then((asset) => {
             setFrontArtworks(prev => {
               const updated = [...prev];
               if (updated[artworkIndex]) {
                 updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
+                  url: getFullAssetUrl(asset.file_url),
                   position: updated[artworkIndex].position,
                   assetId: asset.id
                 };
@@ -330,7 +279,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             });
           }).catch(err => console.error('Upload failed:', err));
         } else {
-          alert('Maximum 4 artworks allowed on front view');
+          alert(`Maximum ${MAX_ARTWORKS_PER_VIEW} artworks allowed on front view`);
           e.target.value = '';
           return;
         }
@@ -342,26 +291,24 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         }
         setNeckArtwork(tempArtwork);
 
-        // Upload to server and update with permanent URL
         uploadAPI.uploadFile(file).then((asset) => {
           setNeckArtwork((prev) => ({
-            url: `http://localhost:3001${asset.file_url}`,
+            url: getFullAssetUrl(asset.file_url),
             position: prev?.position || null,
             assetId: asset.id
           }));
         }).catch(err => console.error('Upload failed:', err));
       } else if (view === 'back') {
-        if (backArtworks.length < 4) {
+        if (backArtworks.length < MAX_ARTWORKS_PER_VIEW) {
           const artworkIndex = backArtworks.length;
           setBackArtworks([...backArtworks, tempArtwork]);
 
-          // Upload to server and update with permanent URL
           uploadAPI.uploadFile(file).then((asset) => {
             setBackArtworks(prev => {
               const updated = [...prev];
               if (updated[artworkIndex]) {
                 updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
+                  url: getFullAssetUrl(asset.file_url),
                   position: updated[artworkIndex].position,
                   assetId: asset.id
                 };
@@ -370,7 +317,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             });
           }).catch(err => console.error('Upload failed:', err));
         } else {
-          alert('Maximum 4 artworks allowed on back view');
+          alert(`Maximum ${MAX_ARTWORKS_PER_VIEW} artworks allowed on back view`);
           e.target.value = '';
           return;
         }
@@ -384,85 +331,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       e.target.value = '';
     }
   };
-
-  // Function to check image DPI
-  const checkImageDPI = async (arrayBuffer: ArrayBuffer, mimeType: string): Promise<number | null> => {
-    const view = new DataView(arrayBuffer);
-
-    try {
-      if (mimeType === 'image/png') {
-        // PNG DPI is stored in pHYs chunk
-        let offset = 8; // Skip PNG signature
-
-        while (offset < view.byteLength) {
-          const length = view.getUint32(offset);
-          const type = String.fromCharCode(
-            view.getUint8(offset + 4),
-            view.getUint8(offset + 5),
-            view.getUint8(offset + 6),
-            view.getUint8(offset + 7)
-          );
-
-          if (type === 'pHYs') {
-            const pixelsPerUnitX = view.getUint32(offset + 8);
-            const unit = view.getUint8(offset + 16);
-
-            if (unit === 1) { // meters
-              // Convert pixels per meter to DPI
-              const dpi = Math.round(pixelsPerUnitX / 39.3701);
-              return dpi;
-            }
-          }
-
-          offset += length + 12;
-        }
-      } else if (mimeType === 'image/jpeg') {
-        // JPEG DPI is stored in JFIF or EXIF
-        let offset = 2; // Skip JPEG SOI marker
-
-        while (offset < view.byteLength) {
-          const marker = view.getUint16(offset);
-
-          if (marker === 0xFFE0) { // JFIF APP0
-            const densityUnits = view.getUint8(offset + 11);
-            const xDensity = view.getUint16(offset + 12);
-
-            if (densityUnits === 1) { // DPI
-              return xDensity;
-            } else if (densityUnits === 2) { // dots per cm
-              return Math.round(xDensity * 2.54);
-            }
-            break;
-          }
-
-          const segmentLength = view.getUint16(offset + 2);
-          offset += segmentLength + 2;
-        }
-      }
-    } catch (error) {
-      console.error('Error reading DPI:', error);
-    }
-
-    return null;
-  };
-
-  // Future feature: Add text to design
-  // const handleAddText = () => {
-  //   if (!textInput.trim()) return;
-  //
-  //   const newPlacement: Placement = {
-  //     location: currentPlacement as any,
-  //     x: 5,
-  //     y: 5,
-  //     width: 4,
-  //     height: 2,
-  //     text_element_id: `text-${Date.now()}`,
-  //     colors: [textColor],
-  //   };
-  //
-  //   setPlacements([...placements, newPlacement]);
-  //   setTextInput('');
-  // };
 
   const handleDownloadDesign = () => {
     if (canvasRef.current && canvasRef.current.downloadImage) {
@@ -627,7 +495,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       quantity,
       unitPrice: unitCost,
       customization: {
-        method: selectedMethod || 'screen_print',
+        method: 'dtg',
         frontArtworks,
         backArtworks,
         neckArtwork,
@@ -653,7 +521,6 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     }, 1500);
   };
 
-  // const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
   const [colorSectionOpen, setColorSectionOpen] = useState(true);
   const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
   const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
@@ -713,7 +580,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               {loadedDesignId ? 'Update Design' : 'Save Design'}
             </button>
             <div className="text-sm font-normal">
-              from ${(12.98).toFixed(2)}
+              from ${TSHIRT_BASE_PRICE.toFixed(2)}
             </div>
           </div>
         </div>

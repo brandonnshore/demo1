@@ -1,172 +1,156 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import Konva from 'konva';
 
+interface ArtworkPosition {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}
+
+interface Artwork {
+  url: string;
+  position: ArtworkPosition | null;
+  assetId?: string;
+}
+
 interface HoodieCanvasProps {
-  artworks?: Array<{url: string, position: any}>;
-  onArtworkPositionChange?: (data: any, index: number) => void;
+  artworks?: Artwork[];
+  onArtworkPositionChange?: (data: ArtworkPosition, index: number) => void;
   onArtworkDelete?: (index: number) => void;
   view?: 'front' | 'neck' | 'back';
 }
 
-const HoodieCanvas = forwardRef(({
+interface ImageCache {
+  front: HTMLImageElement | null;
+  back: HTMLImageElement | null;
+  neck: HTMLImageElement | null;
+}
+
+interface CanvasDimensions {
+  width: number;
+  height: number;
+}
+
+const HOODIE_IMAGES = {
+  front: '/assets/hoodie-black-front.png',
+  back: '/assets/hoodie-black-back.png',
+  neck: '/assets/hoodie-black-back.png',
+};
+
+const CONTAINER_MAX_WIDTH = 600;
+const CONTAINER_MAX_HEIGHT = 700;
+const SCALE_FACTOR = 1.15;
+
+const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
   artworks = [],
   onArtworkPositionChange,
   onArtworkDelete,
   view = 'front',
-}: HoodieCanvasProps, ref) => {
+}, ref) => {
   const [hoodieImage, setHoodieImage] = useState<HTMLImageElement | null>(null);
   const [artworkImages, setArtworkImages] = useState<HTMLImageElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const imageRefs = useRef<(Konva.Image | null)[]>([]);
   const trRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
-
-  // Cache for hoodie images - ONLY hoodies, no t-shirt logic
-  const cachedImages = useRef<{
-    front: HTMLImageElement | null;
-    back: HTMLImageElement | null;
-    neck: HTMLImageElement | null;
-  }>({
+  const cachedImages = useRef<ImageCache>({
     front: null,
     back: null,
     neck: null,
   });
+  const artworkImageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  const [hoodieDimensions, setHoodieDimensions] = useState({ width: 690, height: 805 });
+  const [hoodieDimensions, setHoodieDimensions] = useState<CanvasDimensions>({ width: 690, height: 805 });
 
-  // Expose methods to parent
   useImperativeHandle(ref, () => ({
     downloadImage: () => {
-      if (stageRef.current) {
-        const uri = stageRef.current.toDataURL({
-          pixelRatio: 3,
-          mimeType: 'image/png',
-          quality: 1
-        });
-        const link = document.createElement('a');
-        link.download = 'hoodie-design.png';
-        link.href = uri;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    },
-    getThumbnail: () => {
-      if (stageRef.current) {
-        return stageRef.current.toDataURL({
-          pixelRatio: 1,
-          mimeType: 'image/png',
-          quality: 0.8
-        });
-      }
-      return null;
+      if (!stageRef.current) return;
+      const uri = stageRef.current.toDataURL({
+        pixelRatio: 3,
+        mimeType: 'image/png',
+        quality: 1
+      });
+      const link = document.createElement('a');
+      link.download = 'hoodie-design.png';
+      link.href = uri;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     },
     captureImage: () => {
-      if (stageRef.current) {
-        return stageRef.current.toDataURL({
-          pixelRatio: 2,
-          mimeType: 'image/png',
-          quality: 0.9
-        });
-      }
-      return null;
+      if (!stageRef.current) return null;
+      return stageRef.current.toDataURL({
+        pixelRatio: 2,
+        mimeType: 'image/png',
+        quality: 0.9
+      });
     },
     getThumbnailBlob: async (): Promise<Blob | null> => {
-      if (stageRef.current) {
-        const dataUrl = stageRef.current.toDataURL({
-          pixelRatio: 1,
-          mimeType: 'image/png',
-          quality: 0.8
-        });
-        const response = await fetch(dataUrl);
-        return await response.blob();
-      }
-      return null;
+      if (!stageRef.current) return null;
+      const dataUrl = stageRef.current.toDataURL({
+        pixelRatio: 1,
+        mimeType: 'image/png',
+        quality: 0.8
+      });
+      const response = await fetch(dataUrl);
+      return await response.blob();
     }
   }));
 
-  // Preload hoodie images on mount - ONLY hoodie images
+  const preloadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.src = src;
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(img);
+    });
+  };
+
+  const calculateDimensions = (image: HTMLImageElement): CanvasDimensions => {
+    const aspectRatio = image.width / image.height;
+    let width = CONTAINER_MAX_WIDTH;
+    let height = CONTAINER_MAX_WIDTH / aspectRatio;
+
+    if (height > CONTAINER_MAX_HEIGHT) {
+      height = CONTAINER_MAX_HEIGHT;
+      width = CONTAINER_MAX_HEIGHT * aspectRatio;
+    }
+
+    width *= SCALE_FACTOR;
+    height *= SCALE_FACTOR;
+
+    return { width, height };
+  };
+
   useEffect(() => {
-    const preloadImage = (src: string): Promise<HTMLImageElement> => {
-      return new Promise((resolve) => {
-        const img = new window.Image();
-        img.src = src;
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(img);
-      });
-    };
-
-    const hoodiePaths = {
-      front: '/assets/hoodie-black-front.png',
-      back: '/assets/hoodie-black-back.png',
-      neck: '/assets/hoodie-black-back.png', // Use back for neck view
-    };
-
     Promise.all([
-      preloadImage(hoodiePaths.front),
-      preloadImage(hoodiePaths.back),
-      preloadImage(hoodiePaths.neck),
+      preloadImage(HOODIE_IMAGES.front),
+      preloadImage(HOODIE_IMAGES.back),
+      preloadImage(HOODIE_IMAGES.neck),
     ]).then(([frontImg, backImg, neckImg]) => {
-      cachedImages.current = {
-        front: frontImg,
-        back: backImg,
-        neck: neckImg
-      };
+      cachedImages.current = { front: frontImg, back: backImg, neck: neckImg };
 
       const currentImg = view === 'neck' ? neckImg : view === 'back' ? backImg : frontImg;
-
-      // Calculate dimensions for hoodie
-      const aspectRatio = currentImg.width / currentImg.height;
-      const containerMaxWidth = 600;
-      const containerMaxHeight = 700;
-
-      let width = containerMaxWidth;
-      let height = containerMaxWidth / aspectRatio;
-
-      if (height > containerMaxHeight) {
-        height = containerMaxHeight;
-        width = containerMaxHeight * aspectRatio;
-      }
-
-      // Scale up hoodie
-      width = width * 1.15;
-      height = height * 1.15;
-
-      setHoodieDimensions({ width, height });
+      setHoodieDimensions(calculateDimensions(currentImg));
       setHoodieImage(currentImg);
     });
-  }, []); // Run once on mount
+  }, []);
 
-  // Switch views
   useEffect(() => {
     const cache = cachedImages.current;
     const nextImg = view === 'neck' ? cache.neck : view === 'back' ? cache.back : cache.front;
 
     if (!nextImg) return;
 
-    const aspectRatio = nextImg.width / nextImg.height;
-    const containerMaxWidth = 600;
-    const containerMaxHeight = 700;
-
-    let width = containerMaxWidth;
-    let height = containerMaxWidth / aspectRatio;
-
-    if (height > containerMaxHeight) {
-      height = containerMaxHeight;
-      width = containerMaxHeight * aspectRatio;
-    }
-
-    // Scale up hoodie
-    width = width * 1.15;
-    height = height * 1.15;
-
-    setHoodieDimensions({ width, height });
+    setHoodieDimensions(calculateDimensions(nextImg));
     setHoodieImage(nextImg);
   }, [view]);
 
-  // Handle keyboard delete
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && onArtworkDelete) {
@@ -182,10 +166,6 @@ const HoodieCanvas = forwardRef(({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, onArtworkDelete]);
 
-  // Cache for artwork images
-  const artworkImageCache = useRef<Map<string, HTMLImageElement>>(new Map());
-
-  // Load artworks
   useEffect(() => {
     if (artworks.length === 0) {
       setArtworkImages([]);
@@ -253,9 +233,9 @@ const HoodieCanvas = forwardRef(({
     }
   };
 
-  const checkDeselect = (e: any) => {
+  const checkDeselect = (e: KonvaEventObject<MouseEvent> | KonvaEventObject<TouchEvent>) => {
     const clickedOnStage = e.target === e.target.getStage();
-    const clickedOnHoodie = e.target.image === hoodieImage;
+    const clickedOnHoodie = e.target instanceof Konva.Image && e.target.image() === hoodieImage;
 
     if (clickedOnStage || clickedOnHoodie) {
       setSelectedId(null);
@@ -276,7 +256,7 @@ const HoodieCanvas = forwardRef(({
         </div>
       )}
 
-      {/* @ts-ignore */}
+      {/* @ts-expect-error React-Konva types don't properly support children */}
       <Stage
         ref={stageRef}
         width={hoodieDimensions.width}
@@ -284,7 +264,7 @@ const HoodieCanvas = forwardRef(({
         onMouseDown={checkDeselect}
         onTouchStart={checkDeselect}
       >
-        {/* @ts-ignore */}
+        {/* @ts-expect-error React-Konva types don't properly support children */}
         <Layer>
           {hoodieImage && (
             <KonvaImage

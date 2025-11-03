@@ -8,10 +8,14 @@ import { useAuth } from '../contexts/AuthContext';
 import SaveDesignModal from '../components/SaveDesignModal';
 import Toast from '../components/Toast';
 
-// Hoodie product UUID from database
 const HOODIE_PRODUCT_ID = '9f9e4e98-4128-4d09-af21-58e5523eed14';
+const HOODIE_COLOR = 'Black';
+const SIZES = ['S', 'M', 'L', 'XL', '2XL'] as const;
+const BASE_PRICE = 35.99;
+const DUAL_LOCATION_UPCHARGE = 5.00;
+const NECK_LABEL_UPCHARGE = 1.00;
+const MAX_ARTWORKS_PER_VIEW = 4;
 
-// Hoodie variant UUIDs by size
 const HOODIE_VARIANT_IDS: Record<string, string> = {
   'S': '242180eb-3029-40bc-b185-7ae8e3328b31',
   'M': '677f0bf4-98b9-4088-9151-7422312bbf76',
@@ -20,57 +24,72 @@ const HOODIE_VARIANT_IDS: Record<string, string> = {
   '2XL': '0e302d1c-ce97-4a69-96df-eb603fca599e'
 };
 
+interface Artwork {
+  url: string;
+  position: ArtworkPosition | null;
+  assetId?: string;
+}
+
+interface ArtworkPosition {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}
+
+interface CanvasRef {
+  downloadImage: () => void;
+  captureImage: () => string | null;
+  getThumbnailBlob: () => Promise<Blob | null>;
+}
+
 export default function HoodieProduct() {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
-  const canvasRef = useRef<any>(null);
+  const canvasRef = useRef<CanvasRef>(null);
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
 
-  // Save design modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [savedDesignName, setSavedDesignName] = useState('');
-
-  // Toast state
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Hoodie is only available in Black
   const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);
   const [view, setView] = useState<'front' | 'back' | 'neck'>('front');
 
-  // Artwork state per view
-  const [frontArtworks, setFrontArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
-  const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
-  const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
+  const [frontArtworks, setFrontArtworks] = useState<Artwork[]>([]);
+  const [backArtworks, setBackArtworks] = useState<Artwork[]>([]);
+  const [neckArtwork, setNeckArtwork] = useState<Artwork | null>(null);
 
-  const getCurrentArtworks = () => {
+  const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
+  const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
+  const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
+
+  const getCurrentArtworks = (): Artwork[] => {
     if (view === 'front') return frontArtworks;
     if (view === 'neck') return neckArtwork ? [neckArtwork] : [];
     if (view === 'back') return backArtworks;
     return [];
   };
 
-  const sizes = ['S', 'M', 'L', 'XL', '2XL'];
-
-  // Calculate unit cost - hoodies have different pricing
   const calculateUnitCost = (): number => {
-    let unitCost = 35.99; // Base hoodie price
+    let unitCost = BASE_PRICE;
 
-    const hasFrontArtwork = frontArtworks.length > 0;
-    const hasBackArtwork = backArtworks.length > 0;
-    const hasNeckLabel = neckArtwork !== null;
-
-    const printLocations = [hasFrontArtwork, hasBackArtwork].filter(Boolean).length;
+    const printLocations = [
+      frontArtworks.length > 0,
+      backArtworks.length > 0
+    ].filter(Boolean).length;
 
     if (printLocations === 2) {
-      unitCost += 5.00;
+      unitCost += DUAL_LOCATION_UPCHARGE;
     }
 
-    if (hasNeckLabel) {
-      unitCost += 1.00;
+    if (neckArtwork !== null) {
+      unitCost += NECK_LABEL_UPCHARGE;
     }
 
     return unitCost;
@@ -82,78 +101,67 @@ export default function HoodieProduct() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      const previewUrl = URL.createObjectURL(file);
-      const tempArtwork = { url: previewUrl, position: null, assetId: undefined };
+    e.target.value = '';
 
-      if (view === 'front') {
-        if (frontArtworks.length < 4) {
-          const artworkIndex = frontArtworks.length;
-          setFrontArtworks([...frontArtworks, tempArtwork]);
+    const previewUrl = URL.createObjectURL(file);
+    const tempArtwork: Artwork = { url: previewUrl, position: null, assetId: undefined };
 
-          uploadAPI.uploadFile(file).then((asset) => {
-            setFrontArtworks(prev => {
-              const updated = [...prev];
-              if (updated[artworkIndex]) {
-                updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
-                  position: updated[artworkIndex].position,
-                  assetId: asset.id
-                };
-              }
-              return updated;
-            });
-          }).catch(err => console.error('Upload failed:', err));
-        } else {
-          alert('Maximum 4 artworks allowed on front view');
-          e.target.value = '';
-          return;
-        }
-      } else if (view === 'neck') {
-        if (neckArtwork) {
-          alert('Only 1 artwork allowed on neck view');
-          e.target.value = '';
-          return;
-        }
-        setNeckArtwork(tempArtwork);
-
-        uploadAPI.uploadFile(file).then((asset) => {
-          setNeckArtwork((prev) => ({
-            url: `http://localhost:3001${asset.file_url}`,
-            position: prev?.position || null,
-            assetId: asset.id
-          }));
-        }).catch(err => console.error('Upload failed:', err));
-      } else if (view === 'back') {
-        if (backArtworks.length < 4) {
-          const artworkIndex = backArtworks.length;
-          setBackArtworks([...backArtworks, tempArtwork]);
-
-          uploadAPI.uploadFile(file).then((asset) => {
-            setBackArtworks(prev => {
-              const updated = [...prev];
-              if (updated[artworkIndex]) {
-                updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
-                  position: updated[artworkIndex].position,
-                  assetId: asset.id
-                };
-              }
-              return updated;
-            });
-          }).catch(err => console.error('Upload failed:', err));
-        } else {
-          alert('Maximum 4 artworks allowed on back view');
-          e.target.value = '';
-          return;
-        }
+    if (view === 'front') {
+      if (frontArtworks.length >= MAX_ARTWORKS_PER_VIEW) {
+        alert(`Maximum ${MAX_ARTWORKS_PER_VIEW} artworks allowed on front view`);
+        return;
       }
+      const artworkIndex = frontArtworks.length;
+      setFrontArtworks([...frontArtworks, tempArtwork]);
 
-      e.target.value = '';
-    } catch (error) {
-      console.error('File upload failed:', error);
-      alert('Failed to upload file');
-      e.target.value = '';
+      uploadAPI.uploadFile(file).then((asset) => {
+        setFrontArtworks(prev => {
+          const updated = [...prev];
+          if (updated[artworkIndex]) {
+            updated[artworkIndex] = {
+              ...updated[artworkIndex],
+              url: `http://localhost:3001${asset.file_url}`,
+              assetId: asset.id
+            };
+          }
+          return updated;
+        });
+      }).catch(err => console.error('Upload failed:', err));
+    } else if (view === 'neck') {
+      if (neckArtwork) {
+        alert('Only 1 artwork allowed on neck view');
+        return;
+      }
+      setNeckArtwork(tempArtwork);
+
+      uploadAPI.uploadFile(file).then((asset) => {
+        setNeckArtwork(prev => prev ? {
+          ...prev,
+          url: `http://localhost:3001${asset.file_url}`,
+          assetId: asset.id
+        } : null);
+      }).catch(err => console.error('Upload failed:', err));
+    } else if (view === 'back') {
+      if (backArtworks.length >= MAX_ARTWORKS_PER_VIEW) {
+        alert(`Maximum ${MAX_ARTWORKS_PER_VIEW} artworks allowed on back view`);
+        return;
+      }
+      const artworkIndex = backArtworks.length;
+      setBackArtworks([...backArtworks, tempArtwork]);
+
+      uploadAPI.uploadFile(file).then((asset) => {
+        setBackArtworks(prev => {
+          const updated = [...prev];
+          if (updated[artworkIndex]) {
+            updated[artworkIndex] = {
+              ...updated[artworkIndex],
+              url: `http://localhost:3001${asset.file_url}`,
+              assetId: asset.id
+            };
+          }
+          return updated;
+        });
+      }).catch(err => console.error('Upload failed:', err));
     }
   };
 
@@ -163,10 +171,10 @@ export default function HoodieProduct() {
       return;
     }
 
-    let mockupUrl;
+    let mockupUrl: string | undefined;
     try {
-      if (canvasRef.current && canvasRef.current.captureImage) {
-        mockupUrl = canvasRef.current.captureImage();
+      if (canvasRef.current?.captureImage) {
+        mockupUrl = canvasRef.current.captureImage() || undefined;
       }
     } catch (error) {
       console.error('Error capturing mockup:', error);
@@ -176,7 +184,7 @@ export default function HoodieProduct() {
       id: `hoodie-${selectedSize}-${Date.now()}`,
       variantId: `hoodie-${selectedSize}`,
       productTitle: 'Classic Hoodie',
-      variantColor: 'Black',
+      variantColor: HOODIE_COLOR,
       variantSize: selectedSize,
       quantity,
       unitPrice: unitCost,
@@ -227,8 +235,8 @@ export default function HoodieProduct() {
         front: frontArtworks.map(a => a.position),
         back: backArtworks.map(a => a.position),
         neck: neckArtwork ? [neckArtwork.position] : [],
-        selectedColor: selectedColor,
-        selectedSize: selectedSize || 'M'
+        selectedColor: HOODIE_COLOR,
+        selectedSize: selectedSize
       };
 
       const artworkIds: string[] = [
@@ -238,7 +246,7 @@ export default function HoodieProduct() {
       ];
 
       let thumbnailUrl = '';
-      if (canvasRef.current && canvasRef.current.getThumbnailBlob) {
+      if (canvasRef.current?.getThumbnailBlob) {
         try {
           const thumbnailBlob = await canvasRef.current.getThumbnailBlob();
           if (thumbnailBlob) {
@@ -254,7 +262,7 @@ export default function HoodieProduct() {
       if (loadedDesignId) {
         await designAPI.update(loadedDesignId, {
           name: designName,
-          variantId: HOODIE_VARIANT_IDS[selectedSize || 'M'],
+          variantId: HOODIE_VARIANT_IDS[selectedSize],
           designData,
           artworkIds,
           thumbnailUrl
@@ -264,7 +272,7 @@ export default function HoodieProduct() {
         const saved = await designAPI.save({
           name: designName,
           productId: HOODIE_PRODUCT_ID,
-          variantId: HOODIE_VARIANT_IDS[selectedSize || 'M'],
+          variantId: HOODIE_VARIANT_IDS[selectedSize],
           designData,
           artworkIds,
           thumbnailUrl
@@ -283,13 +291,6 @@ export default function HoodieProduct() {
     }
   };
 
-  const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
-  const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
-  const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
-  const [colorSectionOpen, setColorSectionOpen] = useState(true);
-  const [selectedColor, setSelectedColor] = useState('Black'); // Hoodie only available in Black
-
-  const colors = ['Black']; // Only Black available for now
 
   useEffect(() => {
     if (view === 'neck') {
@@ -307,78 +308,60 @@ export default function HoodieProduct() {
     }
   }, [view]);
 
-  // Load design from URL param if present
   const loadDesign = async (designId: string) => {
     try {
       const design = await designAPI.getById(designId);
-      console.log('[HOODIE LOAD] Full design object:', JSON.stringify(design, null, 2));
       setLoadedDesignId(design.id);
       setSavedDesignName(design.name);
 
-      // Create array of all artwork IDs in order (front, back, neck)
       const allArtworkIds = design.artwork_ids || [];
       const artworkUrls = design.artwork_urls || {};
 
-      // Helper function to get full URL for artwork
-      const getFullUrl = (url: string) => {
-        if (!url) return '';
-        // If URL starts with http, it's already a full URL (Supabase Storage)
-        if (url.startsWith('http')) return url;
-        // Otherwise, prepend API URL (local development)
+      const getFullUrl = (url: string): string => {
+        if (!url || url.startsWith('http')) return url;
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         return `${API_URL}${url}`;
       };
 
-      // Track which artwork ID we're currently processing
       let artworkIndex = 0;
 
-      // Load the design data with actual artwork URLs
       if (design.design_data) {
-        if (design.design_data.front && design.design_data.front.length > 0) {
-          const frontArtworkData = design.design_data.front.map((pos: any) => {
+        if (design.design_data.front?.length > 0) {
+          const frontArtworkData: Artwork[] = design.design_data.front.map((pos: ArtworkPosition) => {
             const assetId = allArtworkIds[artworkIndex];
             const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
             artworkIndex++;
-            return {
-              url: url || '',
-              position: pos,
-              assetId: assetId
-            };
+            return { url, position: pos, assetId };
           });
           setFrontArtworks(frontArtworkData);
         }
 
-        if (design.design_data.back && design.design_data.back.length > 0) {
-          const backArtworkData = design.design_data.back.map((pos: any) => {
+        if (design.design_data.back?.length > 0) {
+          const backArtworkData: Artwork[] = design.design_data.back.map((pos: ArtworkPosition) => {
             const assetId = allArtworkIds[artworkIndex];
             const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
             artworkIndex++;
-            return {
-              url: url || '',
-              position: pos,
-              assetId: assetId
-            };
+            return { url, position: pos, assetId };
           });
           setBackArtworks(backArtworkData);
         }
 
-        if (design.design_data.neck && design.design_data.neck.length > 0) {
+        if (design.design_data.neck?.length > 0) {
           const assetId = allArtworkIds[artworkIndex];
           const url = assetId ? getFullUrl(artworkUrls[assetId]) : '';
           setNeckArtwork({
-            url: url || '',
+            url,
             position: design.design_data.neck[0],
-            assetId: assetId
+            assetId
           });
         }
-      }
 
-      // Set size if available
-      if (design.design_data?.selectedSize) {
-        setSelectedSize(design.design_data.selectedSize);
+        if (design.design_data.selectedSize) {
+          setSelectedSize(design.design_data.selectedSize);
+        }
       }
     } catch (error) {
-      console.error('[HOODIE LOAD] Error loading design:', error);
+      console.error('Error loading design:', error);
     }
   };
 
@@ -421,7 +404,7 @@ export default function HoodieProduct() {
               {loadedDesignId ? 'Update Design' : 'Save Design'}
             </button>
             <div className="text-sm font-normal">
-              from ${(35.99).toFixed(2)}
+              from ${BASE_PRICE.toFixed(2)}
             </div>
           </div>
         </div>
@@ -493,55 +476,6 @@ export default function HoodieProduct() {
         <div className="bg-white border-l border-gray-200 overflow-y-auto">
           <div className="p-5 space-y-1">
 
-            {/* Garment Color Section */}
-            <div className="border-t border-gray-200 pt-5 pb-4">
-              <button
-                onClick={() => setColorSectionOpen(!colorSectionOpen)}
-                className="w-full flex items-center justify-between mb-4 group"
-              >
-                <h3 className="text-sm font-semibold">Garment Color</h3>
-                <div className="flex items-center gap-3">
-                  {selectedColor && (
-                    <span
-                      className="w-5 h-5 rounded-full border border-gray-300"
-                      style={{
-                        backgroundColor: selectedColor === 'Black' ? '#000000' : selectedColor.toLowerCase()
-                      }}
-                    ></span>
-                  )}
-                  <span className="text-gray-400 group-hover:text-gray-600">
-                    {colorSectionOpen ? '−' : '+'}
-                  </span>
-                </div>
-              </button>
-
-              {colorSectionOpen && (
-                <div className="space-y-4">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-3">Pre-developed</div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {colors.map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-all ${
-                          selectedColor === color
-                            ? 'border-gray-900 bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
-                          style={{
-                            backgroundColor: color === 'Black' ? '#000000' : color.toLowerCase()
-                          }}
-                        ></div>
-                        <span className="text-xs font-medium">{color}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Front Artwork Section */}
             <div className="border-t border-gray-200 pt-5 pb-4">
@@ -693,35 +627,13 @@ export default function HoodieProduct() {
               {neckLabelSectionOpen && (
                 <div className="space-y-4">
                   {!neckArtwork && (
-                    <div
-                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
-                      onClick={() => setView('neck')}
-                    >
+                    <div className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer" onClick={() => setView('neck')}>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/svg+xml,application/pdf"
                         onChange={(e) => {
                           setView('neck');
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = async (event) => {
-                              const imageUrl = event.target?.result as string;
-                              try {
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                const result = await uploadAPI.uploadFile(formData);
-                                setNeckArtwork({
-                                  url: imageUrl,
-                                  position: { x: 0, y: 0, width: 100, height: 100, rotation: 0 },
-                                  assetId: result.assetId
-                                });
-                              } catch (error) {
-                                console.error('Upload failed:', error);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
+                          handleFileUpload(e);
                         }}
                         className="hidden"
                         id="neck-label-upload"
@@ -729,15 +641,12 @@ export default function HoodieProduct() {
                       />
                       <label htmlFor="neck-label-upload" className="cursor-pointer">
                         <Upload className="mx-auto mb-2 text-gray-300" size={28} />
-                        <p className="text-xs text-gray-600 font-medium">
-                          Upload neck label
-                        </p>
+                        <p className="text-xs text-gray-600 font-medium">Upload neck label</p>
                         <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
                       </label>
                     </div>
                   )}
 
-                  {/* Display uploaded neck label */}
                   {neckArtwork && (
                     <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex items-start justify-between mb-2">
@@ -767,7 +676,7 @@ export default function HoodieProduct() {
             <div className="border-t border-gray-200 pt-5 pb-4">
               <label className="block text-xs font-medium mb-3">Size</label>
               <div className="grid grid-cols-3 gap-2">
-                {sizes.map((size) => (
+                {SIZES.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -836,11 +745,9 @@ export default function HoodieProduct() {
         currentName={savedDesignName}
       />
 
-      {/* Toast Notification */}
       {showToast && (
         <Toast
           message={toastMessage}
-          isVisible={showToast}
           onClose={() => setShowToast(false)}
         />
       )}
