@@ -69,6 +69,7 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
   useImperativeHandle(ref, () => ({
     downloadImage: () => {
       if (!stageRef.current) return;
+      setSelectedId(null);
       const uri = stageRef.current.toDataURL({
         pixelRatio: 3,
         mimeType: 'image/png',
@@ -83,6 +84,7 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
     },
     captureImage: () => {
       if (!stageRef.current) return null;
+      setSelectedId(null);
       return stageRef.current.toDataURL({
         pixelRatio: 2,
         mimeType: 'image/png',
@@ -98,6 +100,9 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
       });
       const response = await fetch(dataUrl);
       return await response.blob();
+    },
+    deselect: () => {
+      setSelectedId(null);
     }
   }));
 

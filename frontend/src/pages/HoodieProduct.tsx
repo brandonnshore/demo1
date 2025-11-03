@@ -42,6 +42,7 @@ interface CanvasRef {
   downloadImage: () => void;
   captureImage: () => string | null;
   getThumbnailBlob: () => Promise<Blob | null>;
+  deselect: () => void;
 }
 
 export default function HoodieProduct() {

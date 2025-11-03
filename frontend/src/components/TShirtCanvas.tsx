@@ -45,6 +45,7 @@ const TShirtCanvas = forwardRef(({
   useImperativeHandle(ref, () => ({
     downloadImage: () => {
       if (!stageRef.current) return;
+      setSelectedId(null);
       const uri = stageRef.current.toDataURL({
         pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_HIGH,
         mimeType: 'image/png',
@@ -67,6 +68,7 @@ const TShirtCanvas = forwardRef(({
     },
     captureImage: () => {
       if (!stageRef.current) return null;
+      setSelectedId(null);
       return stageRef.current.toDataURL({
         pixelRatio: CANVAS_CONFIG.EXPORT_PIXEL_RATIO_MEDIUM,
         mimeType: 'image/png',
@@ -82,6 +84,9 @@ const TShirtCanvas = forwardRef(({
       });
       const response = await fetch(dataUrl);
       return await response.blob();
+    },
+    deselect: () => {
+      setSelectedId(null);
     }
   }));
 
