@@ -38,11 +38,18 @@ export default function Home() {
     setProducts(mockProducts);
     setLoading(false);
 
-    // Try to fetch real data in background, but don't wait for it
+    // Try to fetch real data in background, but keep hoodie from mock
     productAPI.getAll()
       .then(data => {
         if (data && data.length > 0) {
-          setProducts(data);
+          // Find hoodie in mock data to preserve it
+          const mockHoodie = mockProducts.find((p: Product) => p.slug === 'hoodie');
+          // Replace API data with combined data (API products + mock hoodie)
+          const combinedProducts = [...data.filter((p: Product) => p.slug !== 'hoodie')];
+          if (mockHoodie) {
+            combinedProducts.push(mockHoodie);
+          }
+          setProducts(combinedProducts);
         }
       })
       .catch(err => {

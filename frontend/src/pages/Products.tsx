@@ -110,7 +110,7 @@ export default function Products() {
                   <h3 className="text-sm font-medium mb-1">{product.title}</h3>
                   {product.variants && product.variants.length > 0 && (
                     <p className="text-sm text-gray-600">
-                      from €{Number(product.variants[0].base_price).toFixed(2)}
+                      from ${Number(product.variants[0].base_price).toFixed(2)}
                     </p>
                   )}
                 </div>
