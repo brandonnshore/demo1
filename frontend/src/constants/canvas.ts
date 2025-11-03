@@ -15,8 +15,8 @@ export const CANVAS_CONFIG = {
 
 export const TSHIRT_BOUNDS = {
   FRONT: {
-    minX: 80,
-    maxX: 470,
+    minX: 87,
+    maxX: 477,
     minY: 100,
     maxY: 550
   },
