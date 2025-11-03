@@ -244,7 +244,16 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      {artworkImages.length > 0 && selectedId && (
+      <div
+        className="relative flex items-center justify-center"
+        style={{
+          transform: typeof window !== 'undefined' && window.innerWidth < 640
+            ? `scale(${Math.min(window.innerWidth / 600, 1)})`
+            : 'scale(1)',
+          transformOrigin: 'center center'
+        }}
+      >
+        {artworkImages.length > 0 && selectedId && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-xs px-4 py-2 rounded-full z-10">
           Drag to move • Corners to resize • Rotate to spin • Click away to finish
         </div>
@@ -382,6 +391,7 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
           })}
         </Layer>
       </Stage>
+      </div>
     </div>
   );
 });

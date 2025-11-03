@@ -361,7 +361,16 @@ const TShirtCanvas = forwardRef(({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      {/* Instructions overlay - Absolutely positioned above shirt */}
+      <div
+        className="relative flex items-center justify-center"
+        style={{
+          transform: typeof window !== 'undefined' && window.innerWidth < 640
+            ? `scale(${Math.min(window.innerWidth / 600, 1)})`
+            : 'scale(1)',
+          transformOrigin: 'center center'
+        }}
+      >
+        {/* Instructions overlay - Absolutely positioned above shirt */}
       {artworkImages.length > 0 && selectedId && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-xs px-4 py-2 rounded-full z-10">
           Drag to move • Corners to resize • Rotate to spin • Click away to finish
@@ -517,6 +526,7 @@ const TShirtCanvas = forwardRef(({
           })}
         </Layer>
       </Stage>
+      </div>
     </div>
   );
 });

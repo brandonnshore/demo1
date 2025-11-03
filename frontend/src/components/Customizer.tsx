@@ -546,25 +546,30 @@ export default function Customizer({ product, variants }: CustomizerProps) {
   return (
     <div className="min-h-screen bg-white">
       {/* Custom Compact Header for Customizer */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="relative px-6 py-1.5 flex items-center">
-          {/* Product Title - Left */}
-          <h1 className="text-sm font-bold">
+      <div className="border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="relative px-3 sm:px-6 py-3 sm:py-1.5 flex items-center justify-between">
+          {/* Product Title - Left (hide on mobile, use as spacer) */}
+          <div className="hidden sm:block text-sm font-bold min-w-0">
             {product.title}
-          </h1>
+          </div>
 
-          {/* Raspberry Logo - Center */}
-          <Link to="/" className="absolute left-1/2 -translate-x-1/2 text-lg font-bold hover:text-gray-600 transition-colors">
+          {/* Mobile: Left back button */}
+          <Link to="/" className="sm:hidden text-sm font-medium text-gray-600 hover:text-gray-900">
+            ← Back
+          </Link>
+
+          {/* Raspberry Logo - Center (desktop only) */}
+          <Link to="/" className="hidden sm:block absolute left-1/2 -translate-x-1/2 text-lg font-bold hover:text-gray-600 transition-colors">
             Raspberry
           </Link>
 
           {/* Save Design Button and Price - Right */}
-          <div className="ml-auto flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={handleDownloadDesign}
               disabled={!currentArtwork}
               title="Download Design"
-              className={`p-2 rounded-md transition-colors ${
+              className={`hidden sm:flex p-2 rounded-md transition-colors ${
                 currentArtwork
                   ? 'text-gray-700 hover:bg-gray-100'
                   : 'text-gray-300 cursor-not-allowed'
@@ -574,23 +579,24 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             </button>
             <button
               onClick={handleSaveDesign}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md transition-colors bg-black text-white hover:bg-gray-800"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-md transition-colors bg-black text-white hover:bg-gray-800"
             >
               <Save size={14} />
-              {loadedDesignId ? 'Update Design' : 'Save Design'}
+              <span className="hidden sm:inline">{loadedDesignId ? 'Update' : 'Save'}</span>
+              <span className="sm:hidden">{loadedDesignId ? 'Update' : 'Save'}</span>
             </button>
-            <div className="text-sm font-normal">
+            <div className="hidden md:block text-sm font-normal whitespace-nowrap">
               from ${TSHIRT_BASE_PRICE.toFixed(2)}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_400px] h-[calc(100vh-40px)]">
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_400px] lg:h-[calc(100vh-40px)]">
         {/* Left - Canvas Area */}
-        <div className="bg-white flex flex-col relative h-full overflow-hidden">
+        <div className="bg-white flex flex-col relative h-[60vh] lg:h-full overflow-hidden order-1">
           {/* Interactive Canvas Preview */}
-          <div className={`absolute inset-0 flex items-center justify-center ${view === 'neck' ? 'pt-0 pb-0 px-0' : 'pt-2 pb-16 px-6'}`}>
+          <div className={`absolute inset-0 flex items-center justify-center ${view === 'neck' ? 'pt-0 pb-0 px-0' : 'pt-2 pb-16 lg:pb-16 px-2 sm:px-6'}`}>
             {product.slug === 'classic-hoodie' ? (
               <HoodieCanvas
                 ref={canvasRef}
@@ -658,10 +664,10 @@ export default function Customizer({ product, variants }: CustomizerProps) {
           </div>
 
           {/* View Switcher - Minimal */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-2 py-2 flex gap-1">
+          <div className="absolute bottom-4 lg:bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-1.5 sm:px-2 py-1.5 sm:py-2 flex gap-1">
             <button
               onClick={() => setView('front')}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'front'
                   ? 'bg-black text-white'
                   : 'text-gray-700 hover:bg-gray-100'
@@ -671,7 +677,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             </button>
             <button
               onClick={() => setView('back')}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'back'
                   ? 'bg-black text-white'
                   : 'text-gray-700 hover:bg-gray-100'
@@ -681,7 +687,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             </button>
             <button
               onClick={() => setView('neck')}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'neck'
                   ? 'bg-black text-white'
                   : 'text-gray-700 hover:bg-gray-100'
@@ -693,8 +699,8 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         </div>
 
         {/* Right Sidebar */}
-        <div className="bg-white border-l border-gray-200 overflow-y-auto">
-          <div className="p-5 space-y-1">
+        <div className="bg-white border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto order-2 max-h-[40vh] lg:max-h-none">
+          <div className="p-4 sm:p-5 space-y-1 pb-24 lg:pb-5">
 
             {/* Garment Color Section */}
             <div className="border-t border-gray-200 pt-5 pb-4">
@@ -1021,12 +1027,12 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               </div>
             </div>
 
-            {/* Confirm Button */}
-            <div className="pt-4">
+            {/* Confirm Button - Sticky on Mobile */}
+            <div className="pt-4 lg:relative fixed bottom-0 left-0 right-0 p-4 bg-white border-t lg:border-t-0 border-gray-200 lg:p-0 shadow-lg lg:shadow-none">
               <button
                 onClick={handleAddToCart}
                 disabled={!selectedColor || !selectedSize}
-                className="w-full py-3 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="w-full py-3.5 sm:py-3 bg-black text-white text-base sm:text-sm font-medium rounded-full hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {editingCartItemId ? 'Update Cart' : 'Add to Cart'}
               </button>
