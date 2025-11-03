@@ -488,7 +488,6 @@ const TShirtCanvas = forwardRef(({
                 <Transformer
                   ref={trRef}
                   keepRatio={true}
-                  padding={5}
                   boundBoxFunc={(oldBox, newBox) => {
                     if (newBox.width < CANVAS_CONFIG.ARTWORK_MIN_SIZE || newBox.height < CANVAS_CONFIG.ARTWORK_MIN_SIZE) {
                       return oldBox;

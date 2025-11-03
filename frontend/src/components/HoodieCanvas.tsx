@@ -362,7 +362,6 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
                   <Transformer
                     ref={trRef}
                     keepRatio={true}
-                    padding={5}
                     boundBoxFunc={(oldBox, newBox) => {
                       if (newBox.width < 50 || newBox.height < 50) return oldBox;
                       if (newBox.width > 400 || newBox.height > 400) return oldBox;
