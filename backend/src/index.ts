@@ -92,6 +92,15 @@ app.use('/uploads', (_req: Request, res: Response, next) => {
   next();
 }, express.static(uploadsPath));
 
+// Serve static product images from public/assets
+const assetsPath = path.resolve('./public/assets');
+app.use('/assets', (_req: Request, res: Response, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(assetsPath));
+
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
