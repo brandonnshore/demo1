@@ -15,7 +15,7 @@ export default function Products() {
         title: 'Classic Hoodie',
         slug: 'hoodie',
         description: 'Premium heavyweight hoodie',
-        images: ['/uploads/hoodie-black-front.png'],
+        images: ['/assets/hoodie-black-front.png'],
         status: 'active' as const,
         variants: [
           { id: '2', product_id: '2', color: 'Black', size: 'M', sku: 'HOODIE-BLK-M', base_price: 35.99, stock_level: 100 }

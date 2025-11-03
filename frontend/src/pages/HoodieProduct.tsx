@@ -672,6 +672,18 @@ export default function HoodieProduct() {
               )}
             </div>
 
+            {/* Garment Color */}
+            <div className="border-t border-gray-200 pt-5 pb-4">
+              <label className="block text-xs font-medium mb-3">Garment Color</label>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  className="px-3 py-2 border border-black bg-black text-white rounded-md text-xs font-medium"
+                >
+                  Black
+                </button>
+              </div>
+            </div>
+
             {/* Size Selection */}
             <div className="border-t border-gray-200 pt-5 pb-4">
               <label className="block text-xs font-medium mb-3">Size</label>
