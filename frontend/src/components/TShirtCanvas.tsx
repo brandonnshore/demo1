@@ -441,35 +441,37 @@ const TShirtCanvas = forwardRef(({
                     ? TSHIRT_BOUNDS.BACK
                     : TSHIRT_BOUNDS.FRONT;
 
-                  // Get current image dimensions
+                  // Get the actual bounding box of the image (includes rotation)
                   const node = imageRefs.current[index];
-                  const imageWidth = node?.width() || 0;
-                  const imageHeight = node?.height() || 0;
-                  const scaleX = node?.scaleX() || 1;
-                  const scaleY = node?.scaleY() || 1;
+                  if (!node) return pos;
 
-                  const scaledWidth = imageWidth * scaleX;
-                  const scaledHeight = imageHeight * scaleY;
+                  const box = node.getClientRect();
+                  const boxWidth = box.width;
+                  const boxHeight = box.height;
 
                   // Constrain position to keep artwork within bounds
                   let newX = pos.x;
                   let newY = pos.y;
 
+                  // Calculate the offset from the node position to the bounding box
+                  const offsetX = box.x - node.x();
+                  const offsetY = box.y - node.y();
+
                   // Prevent artwork from going beyond left edge
-                  if (newX < shirtBounds.minX) {
-                    newX = shirtBounds.minX;
+                  if (newX + offsetX < shirtBounds.minX) {
+                    newX = shirtBounds.minX - offsetX;
                   }
                   // Prevent artwork from going beyond right edge
-                  if (newX + scaledWidth > shirtBounds.maxX) {
-                    newX = shirtBounds.maxX - scaledWidth;
+                  if (newX + offsetX + boxWidth > shirtBounds.maxX) {
+                    newX = shirtBounds.maxX - boxWidth - offsetX;
                   }
                   // Prevent artwork from going beyond top edge
-                  if (newY < shirtBounds.minY) {
-                    newY = shirtBounds.minY;
+                  if (newY + offsetY < shirtBounds.minY) {
+                    newY = shirtBounds.minY - offsetY;
                   }
                   // Prevent artwork from going beyond bottom edge
-                  if (newY + scaledHeight > shirtBounds.maxY) {
-                    newY = shirtBounds.maxY - scaledHeight;
+                  if (newY + offsetY + boxHeight > shirtBounds.maxY) {
+                    newY = shirtBounds.maxY - boxHeight - offsetY;
                   }
 
                   return {
@@ -486,6 +488,7 @@ const TShirtCanvas = forwardRef(({
                 <Transformer
                   ref={trRef}
                   keepRatio={true}
+                  padding={5}
                   boundBoxFunc={(oldBox, newBox) => {
                     if (newBox.width < CANVAS_CONFIG.ARTWORK_MIN_SIZE || newBox.height < CANVAS_CONFIG.ARTWORK_MIN_SIZE) {
                       return oldBox;

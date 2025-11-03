@@ -321,22 +321,35 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
                       maxY: 650
                     };
 
+                    // Get the actual bounding box of the image (includes rotation)
                     const node = imageRefs.current[index];
-                    const imageWidth = node?.width() || 0;
-                    const imageHeight = node?.height() || 0;
-                    const scaleX = node?.scaleX() || 1;
-                    const scaleY = node?.scaleY() || 1;
+                    if (!node) return pos;
 
-                    const scaledWidth = imageWidth * scaleX;
-                    const scaledHeight = imageHeight * scaleY;
+                    const box = node.getClientRect();
+                    const boxWidth = box.width;
+                    const boxHeight = box.height;
 
+                    // Constrain position to keep artwork within bounds
                     let newX = pos.x;
                     let newY = pos.y;
 
-                    if (newX < shirtBounds.minX) newX = shirtBounds.minX;
-                    if (newX + scaledWidth > shirtBounds.maxX) newX = shirtBounds.maxX - scaledWidth;
-                    if (newY < shirtBounds.minY) newY = shirtBounds.minY;
-                    if (newY + scaledHeight > shirtBounds.maxY) newY = shirtBounds.maxY - scaledHeight;
+                    // Calculate the offset from the node position to the bounding box
+                    const offsetX = box.x - node.x();
+                    const offsetY = box.y - node.y();
+
+                    // Prevent artwork from going beyond edges
+                    if (newX + offsetX < shirtBounds.minX) {
+                      newX = shirtBounds.minX - offsetX;
+                    }
+                    if (newX + offsetX + boxWidth > shirtBounds.maxX) {
+                      newX = shirtBounds.maxX - boxWidth - offsetX;
+                    }
+                    if (newY + offsetY < shirtBounds.minY) {
+                      newY = shirtBounds.minY - offsetY;
+                    }
+                    if (newY + offsetY + boxHeight > shirtBounds.maxY) {
+                      newY = shirtBounds.maxY - boxHeight - offsetY;
+                    }
 
                     return { x: newX, y: newY };
                   }}
@@ -349,6 +362,7 @@ const HoodieCanvas = forwardRef<unknown, HoodieCanvasProps>(({
                   <Transformer
                     ref={trRef}
                     keepRatio={true}
+                    padding={5}
                     boundBoxFunc={(oldBox, newBox) => {
                       if (newBox.width < 50 || newBox.height < 50) return oldBox;
                       if (newBox.width > 400 || newBox.height > 400) return oldBox;
