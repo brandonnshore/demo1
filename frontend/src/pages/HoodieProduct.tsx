@@ -677,7 +677,8 @@ export default function HoodieProduct() {
               <label className="block text-xs font-medium mb-3">Garment Color</label>
               <div className="grid grid-cols-1 gap-2">
                 <button
-                  className="px-3 py-2 border border-black bg-black text-white rounded-md text-xs font-medium"
+                  disabled
+                  className="px-3 py-2 border border-black bg-black text-white rounded-md text-xs font-medium cursor-default"
                 >
                   Black
                 </button>
