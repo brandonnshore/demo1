@@ -84,7 +84,14 @@
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_ght4wz/**)",
       "Bash(curl -s http://localhost:3001/health)",
       "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_DPdOzg/**)",
-      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_b7nuhV/**)"
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_b7nuhV/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_FystrS/**)",
+      "Bash(echo \"49148\n54402\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(npx tsc --noEmit)",
+      "Read(//private/tmp/**)",
+      "Bash(pkill -9 node)",
+      "Bash(curl -sI https://www.raspberrymerch.com)"
     ],
     "deny": [],
     "ask": []

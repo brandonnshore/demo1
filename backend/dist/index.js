@@ -73,6 +73,8 @@ const limiter = (0, express_rate_limit_1.rateLimit)({
     legacyHeaders: false,
 });
 app.use('/api/', limiter);
+// Stripe webhook needs raw body for signature verification - must be before JSON parsing
+app.use('/api/webhooks/stripe', express_1.default.raw({ type: 'application/json' }));
 // Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
@@ -84,6 +86,14 @@ app.use('/uploads', (_req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
 }, express_1.default.static(uploadsPath));
+// Serve static product images from public/assets
+const assetsPath = path_1.default.resolve('./public/assets');
+app.use('/assets', (_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+}, express_1.default.static(assetsPath));
 // Health check
 app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

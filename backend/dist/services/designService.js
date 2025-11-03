@@ -46,11 +46,6 @@ const getDesignById = async (designId, userId) => {
 };
 exports.getDesignById = getDesignById;
 const updateDesignById = async (designId, userId, params) => {
-    console.log('[BACKEND] Updating design with params:', {
-        variantId: params.variantId,
-        hasVariantId: params.variantId !== undefined
-    });
-    // First check if design belongs to user
     const existing = await (0, exports.getDesignById)(designId, userId);
     if (!existing) {
         return null;
