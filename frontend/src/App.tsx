@@ -11,6 +11,7 @@ import Products from './pages/Products';
 
 // Lazy load non-critical pages for better performance
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const HoodieProduct = lazy(() => import('./pages/HoodieProduct'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const OrderTracking = lazy(() => import('./pages/OrderTracking'));
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/products/:slug" element={<ProductDetail />} />
+                <Route path="/hoodie" element={<HoodieProduct />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/orders/:id" element={<OrderTracking />} />

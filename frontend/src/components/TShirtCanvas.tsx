@@ -4,13 +4,10 @@ import Konva from 'konva';
 
 interface TShirtCanvasProps {
   tshirtColor?: string;
-  uploadedArtwork?: string | null;
-  artworkPosition?: any;
   artworks?: Array<{url: string, position: any}>;
   onArtworkPositionChange?: (data: any, index: number) => void;
   onArtworkDelete?: (index: number) => void;
   view?: 'front' | 'neck' | 'back';
-  productSlug?: string; // 'classic-tee' or 'classic-hoodie'
 }
 
 const TShirtCanvas = forwardRef(({
@@ -19,7 +16,6 @@ const TShirtCanvas = forwardRef(({
   onArtworkPositionChange,
   onArtworkDelete,
   view = 'front',
-  productSlug = 'classic-tee'
 }: TShirtCanvasProps, ref) => {
   const [tshirtImage, setTshirtImage] = useState<HTMLImageElement | null>(null);
   const [artworkImages, setArtworkImages] = useState<HTMLImageElement[]>([]);
@@ -29,7 +25,7 @@ const TShirtCanvas = forwardRef(({
   const trRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
 
-  // Preload and cache all t-shirt images
+  // Cache for t-shirt images ONLY
   const cachedImages = useRef<{
     front: HTMLImageElement | null;
     back: HTMLImageElement | null;
@@ -101,22 +97,11 @@ const TShirtCanvas = forwardRef(({
     }
   }));
 
-  // Helper function to get image paths based on color and product type
+  // Helper function to get image paths based ONLY on t-shirt color
   const getImagePaths = (color: string) => {
     const colorLower = color.toLowerCase();
-    const isHoodie = productSlug === 'classic-hoodie';
 
-    // If it's a hoodie, use hoodie images
-    if (isHoodie) {
-      // For now, only black hoodie exists, so default to black
-      return {
-        front: '/uploads/hoodie-black-front.png',
-        back: '/uploads/hoodie-black-back.png',
-        neck: '/uploads/hoodie-black-back.png', // Use back as neck for now
-      };
-    }
-
-    // T-shirt images
+    // T-shirt images ONLY
     if (colorLower === 'navy') {
       return {
         front: '/assets/navy-front.png',
@@ -139,7 +124,7 @@ const TShirtCanvas = forwardRef(({
     }
   };
 
-  // Preload all images on mount and when color changes
+  // Preload all images on mount and when color OR product changes
   useEffect(() => {
     const preloadImage = (src: string): Promise<HTMLImageElement> => {
       return new Promise((resolve) => {
@@ -153,15 +138,18 @@ const TShirtCanvas = forwardRef(({
 
     const paths = getImagePaths(tshirtColor);
 
-    // Preload all views for current color
+    // Preload all t-shirt views for current color
     Promise.all([
       preloadImage(paths.front),
       preloadImage(paths.back),
       preloadImage(paths.neck),
     ]).then(([frontImg, backImg, neckImg]) => {
-      cachedImages.current.front = frontImg;
-      cachedImages.current.back = backImg;
-      cachedImages.current.neck = neckImg;
+      // Update cache with t-shirt images
+      cachedImages.current = {
+        front: frontImg,
+        back: backImg,
+        neck: neckImg
+      };
 
       // Use the current view instead of always defaulting to front
       const currentViewImg = view === 'neck' ? neckImg : view === 'back' ? backImg : frontImg;
@@ -194,18 +182,8 @@ const TShirtCanvas = forwardRef(({
           width = containerMaxHeight * aspectRatio;
         }
 
-        // Apply product-specific and color-specific scaling
-        const isHoodie = productSlug === 'classic-hoodie';
-
-        if (isHoodie && view === 'front') {
-          // Scale up hoodie front to match back size
-          width = width * 1.15;
-          height = height * 1.15;
-        } else if (isHoodie && view === 'back') {
-          // Scale up hoodie back
-          width = width * 1.15;
-          height = height * 1.15;
-        } else if (view === 'back') {
+        // Apply t-shirt color-specific scaling
+        if (view === 'back') {
           const colorLower = tshirtColor?.toLowerCase() || '';
 
           if (colorLower === 'white' || colorLower === '') {
@@ -225,17 +203,18 @@ const TShirtCanvas = forwardRef(({
 
       setTshirtImage(currentViewImg);
     });
-  }, [tshirtColor, view, productSlug]);
+  }, [tshirtColor, view]);
 
   // Instant view switching - no transition
   useEffect(() => {
     if (view === activeView.current) return;
 
+    const cache = cachedImages.current;
     const nextImg = view === 'neck'
-      ? cachedImages.current.neck
+      ? cache.neck
       : view === 'back'
-      ? cachedImages.current.back
-      : cachedImages.current.front;
+      ? cache.back
+      : cache.front;
 
     if (!nextImg) return;
 
@@ -436,7 +415,7 @@ const TShirtCanvas = forwardRef(({
             <KonvaImage
               image={tshirtImage}
               x={0}
-              y={productSlug === 'classic-hoodie' && view === 'back' ? -20 : 0}
+              y={0}
               width={tshirtDimensions.width}
               height={tshirtDimensions.height}
               onClick={() => setSelectedId(null)}

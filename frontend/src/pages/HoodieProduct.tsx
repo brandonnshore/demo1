@@ -1,59 +1,51 @@
 import { useState, useEffect, useRef } from 'react';
-import { Product, Variant, DecorationMethod } from '../types';
-import { uploadAPI, designAPI } from '../services/api';
-import { useCartStore } from '../stores/cartStore';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Upload, ArrowDownToLine, Save } from 'lucide-react';
-import TShirtCanvas from './TShirtCanvas';
-import HoodieCanvas from './HoodieCanvas';
+import HoodieCanvas from '../components/HoodieCanvas';
+import { uploadAPI, designAPI } from '../services/api';
+import { useCartStore } from '../stores/cartStore';
 import { useAuth } from '../contexts/AuthContext';
-import SaveDesignModal from './SaveDesignModal';
-import Toast from './Toast';
-import { trackCustomizationStarted, trackDesignSaved } from '../utils/analytics';
+import SaveDesignModal from '../components/SaveDesignModal';
+import Toast from '../components/Toast';
 
-interface CustomizerProps {
-  product: Product;
-  variants: Variant[];
-  decorationMethods: DecorationMethod[];
-}
+// Hoodie product UUID from database
+const HOODIE_PRODUCT_ID = '9f9e4e98-4128-4d09-af21-58e5523eed14';
 
-export default function Customizer({ product, variants }: CustomizerProps) {
+// Hoodie variant UUIDs by size
+const HOODIE_VARIANT_IDS: Record<string, string> = {
+  'S': '242180eb-3029-40bc-b185-7ae8e3328b31',
+  'M': '677f0bf4-98b9-4088-9151-7422312bbf76',
+  'L': 'd6495a9b-0e81-40f7-81e4-3cf09eb25f2a',
+  'XL': 'be75094a-c54b-4e3e-b861-b57aaaf2c774',
+  '2XL': '0e302d1c-ce97-4a69-96df-eb603fca599e'
+};
+
+export default function HoodieProduct() {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
-  const updateItem = useCartStore((state) => state.updateItem);
-  const getItem = useCartStore((state) => state.getItem);
   const canvasRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
-  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
-  const hasLoadedDesignRef = useRef<string | null>(null);
 
-  // Track customization started
-  useEffect(() => {
-    trackCustomizationStarted(product.title);
-  }, []); // Run only once on mount
+  // Save design modal state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [savedDesignName, setSavedDesignName] = useState('');
 
-  // Selection state
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-  const [selectedMethod] = useState('');
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Hoodie is only available in Black
+  const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);
+  const [view, setView] = useState<'front' | 'back' | 'neck'>('front');
 
-  // Customization state - separate for each view
-  const [view, setView] = useState<'front' | 'neck' | 'back'>('front');
-
-  // Artwork state per view (now includes assetId for tracking)
+  // Artwork state per view
   const [frontArtworks, setFrontArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
-  const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
   const [backArtworks, setBackArtworks] = useState<Array<{url: string, position: any, assetId?: string}>>([]);
+  const [neckArtwork, setNeckArtwork] = useState<{url: string, position: any, assetId?: string} | null>(null);
 
-  // Future feature: text input functionality
-  // const [, setTextInput] = useState('');
-  // const [textColor] = useState('#000000');
-
-  // Current view's artwork
   const getCurrentArtworks = () => {
     if (view === 'front') return frontArtworks;
     if (view === 'neck') return neckArtwork ? [neckArtwork] : [];
@@ -61,36 +53,22 @@ export default function Customizer({ product, variants }: CustomizerProps) {
     return [];
   };
 
-  const currentArtwork = getCurrentArtworks()[0] || null;
+  const sizes = ['S', 'M', 'L', 'XL', '2XL'];
 
-  // Price state removed - using calculateUnitCost() instead
-
-  // Save design modal state
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [savedDesignName, setSavedDesignName] = useState('');
-
-  // Toast notification state
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-
-  // Calculate unit cost based on artwork
+  // Calculate unit cost - hoodies have different pricing
   const calculateUnitCost = (): number => {
-    let unitCost = 12.98; // Base price
+    let unitCost = 35.99; // Base hoodie price
 
-    // Count how many print locations have artwork
     const hasFrontArtwork = frontArtworks.length > 0;
     const hasBackArtwork = backArtworks.length > 0;
     const hasNeckLabel = neckArtwork !== null;
 
-    // Count print locations (front and back only)
     const printLocations = [hasFrontArtwork, hasBackArtwork].filter(Boolean).length;
 
-    // Add $5 for second print location (front + back)
     if (printLocations === 2) {
       unitCost += 5.00;
     }
 
-    // Add $1 for neck label (always, regardless of other artworks)
     if (hasNeckLabel) {
       unitCost += 1.00;
     }
@@ -100,65 +78,242 @@ export default function Customizer({ product, variants }: CustomizerProps) {
 
   const unitCost = calculateUnitCost();
 
-  // Get unique colors and sizes (add Navy if not present)
-  const dbColors = [...new Set(variants.map((v) => v.color))];
-  const colors = dbColors.includes('Navy') ? dbColors : [...dbColors, 'Navy'];
-  const sizes = [...new Set(variants.map((v) => v.size))].sort((a, b) => {
-    const order = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
-    return order.indexOf(a) - order.indexOf(b);
-  });
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Update selected variant when color/size changes
-  useEffect(() => {
-    if (selectedColor && selectedSize) {
-      const variant = variants.find((v) => v.color === selectedColor && v.size === selectedSize);
-      setSelectedVariant(variant || null);
-    }
-  }, [selectedColor, selectedSize, variants]);
+    try {
+      const previewUrl = URL.createObjectURL(file);
+      const tempArtwork = { url: previewUrl, position: null, assetId: undefined };
 
-  // Load design from URL param if present
-  useEffect(() => {
-    const designId = searchParams.get('designId');
-    if (designId && isAuthenticated && variants.length > 0 && hasLoadedDesignRef.current !== designId) {
-      hasLoadedDesignRef.current = designId;
-      loadDesign(designId);
-    }
-  }, [searchParams, isAuthenticated, variants]);
+      if (view === 'front') {
+        if (frontArtworks.length < 4) {
+          const artworkIndex = frontArtworks.length;
+          setFrontArtworks([...frontArtworks, tempArtwork]);
 
-  // Load cart item for editing if present
-  useEffect(() => {
-    const cartItemId = searchParams.get('editCartItem');
-    if (cartItemId) {
-      const cartItem = getItem(cartItemId);
-      if (cartItem) {
-        setEditingCartItemId(cartItemId);
-        // Load the design state from cart item
-        setSelectedColor(cartItem.variantColor);
-        setSelectedSize(cartItem.variantSize);
-        setQuantity(cartItem.quantity);
+          uploadAPI.uploadFile(file).then((asset) => {
+            setFrontArtworks(prev => {
+              const updated = [...prev];
+              if (updated[artworkIndex]) {
+                updated[artworkIndex] = {
+                  url: `http://localhost:3001${asset.file_url}`,
+                  position: updated[artworkIndex].position,
+                  assetId: asset.id
+                };
+              }
+              return updated;
+            });
+          }).catch(err => console.error('Upload failed:', err));
+        } else {
+          alert('Maximum 4 artworks allowed on front view');
+          e.target.value = '';
+          return;
+        }
+      } else if (view === 'neck') {
+        if (neckArtwork) {
+          alert('Only 1 artwork allowed on neck view');
+          e.target.value = '';
+          return;
+        }
+        setNeckArtwork(tempArtwork);
 
-        // Load customization data if available
-        if (cartItem.customization) {
-          if (cartItem.customization.frontArtworks) {
-            setFrontArtworks(cartItem.customization.frontArtworks);
-          }
-          if (cartItem.customization.backArtworks) {
-            setBackArtworks(cartItem.customization.backArtworks);
-          }
-          if (cartItem.customization.neckArtwork) {
-            setNeckArtwork(cartItem.customization.neckArtwork);
-          }
+        uploadAPI.uploadFile(file).then((asset) => {
+          setNeckArtwork((prev) => ({
+            url: `http://localhost:3001${asset.file_url}`,
+            position: prev?.position || null,
+            assetId: asset.id
+          }));
+        }).catch(err => console.error('Upload failed:', err));
+      } else if (view === 'back') {
+        if (backArtworks.length < 4) {
+          const artworkIndex = backArtworks.length;
+          setBackArtworks([...backArtworks, tempArtwork]);
+
+          uploadAPI.uploadFile(file).then((asset) => {
+            setBackArtworks(prev => {
+              const updated = [...prev];
+              if (updated[artworkIndex]) {
+                updated[artworkIndex] = {
+                  url: `http://localhost:3001${asset.file_url}`,
+                  position: updated[artworkIndex].position,
+                  assetId: asset.id
+                };
+              }
+              return updated;
+            });
+          }).catch(err => console.error('Upload failed:', err));
+        } else {
+          alert('Maximum 4 artworks allowed on back view');
+          e.target.value = '';
+          return;
         }
       }
-    }
-  }, [searchParams, getItem]);
 
+      e.target.value = '';
+    } catch (error) {
+      console.error('File upload failed:', error);
+      alert('Failed to upload file');
+      e.target.value = '';
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+
+    let mockupUrl;
+    try {
+      if (canvasRef.current && canvasRef.current.captureImage) {
+        mockupUrl = canvasRef.current.captureImage();
+      }
+    } catch (error) {
+      console.error('Error capturing mockup:', error);
+    }
+
+    const cartItem = {
+      id: `hoodie-${selectedSize}-${Date.now()}`,
+      variantId: `hoodie-${selectedSize}`,
+      productTitle: 'Classic Hoodie',
+      variantColor: 'Black',
+      variantSize: selectedSize,
+      quantity,
+      unitPrice: unitCost,
+      customization: {
+        method: 'dtg',
+        frontArtworks,
+        backArtworks,
+        neckArtwork,
+      },
+      mockupUrl,
+    };
+
+    addItem(cartItem);
+    navigate('/cart');
+  };
+
+  const handleDownloadDesign = () => {
+    if (canvasRef.current && canvasRef.current.downloadImage) {
+      canvasRef.current.downloadImage();
+    }
+  };
+
+  const handleSaveDesign = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: window.location.pathname + window.location.search } });
+      return;
+    }
+
+    if (loadedDesignId && savedDesignName) {
+      try {
+        await performSaveDesign(savedDesignName);
+        setToastMessage('Design updated successfully!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (error) {
+        console.error('Error updating design:', error);
+        alert('Failed to update design');
+      }
+      return;
+    }
+
+    setShowSaveModal(true);
+  };
+
+  const performSaveDesign = async (designName: string) => {
+    try {
+      const designData = {
+        front: frontArtworks.map(a => a.position),
+        back: backArtworks.map(a => a.position),
+        neck: neckArtwork ? [neckArtwork.position] : [],
+        selectedColor: selectedColor,
+        selectedSize: selectedSize || 'M'
+      };
+
+      const artworkIds: string[] = [
+        ...frontArtworks.filter(a => a.assetId).map(a => a.assetId!),
+        ...backArtworks.filter(a => a.assetId).map(a => a.assetId!),
+        ...(neckArtwork?.assetId ? [neckArtwork.assetId] : [])
+      ];
+
+      let thumbnailUrl = '';
+      if (canvasRef.current && canvasRef.current.getThumbnailBlob) {
+        try {
+          const thumbnailBlob = await canvasRef.current.getThumbnailBlob();
+          if (thumbnailBlob) {
+            const thumbnailFile = new File([thumbnailBlob], 'thumbnail.png', { type: 'image/png' });
+            const uploadedAsset = await uploadAPI.uploadFile(thumbnailFile);
+            thumbnailUrl = uploadedAsset.file_url;
+          }
+        } catch (err) {
+          console.error('Failed to capture thumbnail:', err);
+        }
+      }
+
+      if (loadedDesignId) {
+        await designAPI.update(loadedDesignId, {
+          name: designName,
+          variantId: HOODIE_VARIANT_IDS[selectedSize || 'M'],
+          designData,
+          artworkIds,
+          thumbnailUrl
+        });
+        setSavedDesignName(designName);
+      } else {
+        const saved = await designAPI.save({
+          name: designName,
+          productId: HOODIE_PRODUCT_ID,
+          variantId: HOODIE_VARIANT_IDS[selectedSize || 'M'],
+          designData,
+          artworkIds,
+          thumbnailUrl
+        });
+        setLoadedDesignId(saved.id);
+        setSavedDesignName(designName);
+      }
+
+      setShowSaveModal(false);
+      setToastMessage(loadedDesignId ? 'Design updated successfully!' : 'Design saved successfully!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error('Error saving design:', error);
+      throw error;
+    }
+  };
+
+  const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
+  const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
+  const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
+  const [colorSectionOpen, setColorSectionOpen] = useState(true);
+  const [selectedColor, setSelectedColor] = useState('Black'); // Hoodie only available in Black
+
+  const colors = ['Black']; // Only Black available for now
+
+  useEffect(() => {
+    if (view === 'neck') {
+      setNeckLabelSectionOpen(true);
+      setFrontArtworkSectionOpen(false);
+      setBackArtworkSectionOpen(false);
+    } else if (view === 'front') {
+      setFrontArtworkSectionOpen(true);
+      setBackArtworkSectionOpen(false);
+      setNeckLabelSectionOpen(false);
+    } else if (view === 'back') {
+      setBackArtworkSectionOpen(true);
+      setFrontArtworkSectionOpen(false);
+      setNeckLabelSectionOpen(false);
+    }
+  }, [view]);
+
+  // Load design from URL param if present
   const loadDesign = async (designId: string) => {
     try {
       const design = await designAPI.getById(designId);
-      console.log('[LOAD] Full design object:', JSON.stringify(design, null, 2));
+      console.log('[HOODIE LOAD] Full design object:', JSON.stringify(design, null, 2));
       setLoadedDesignId(design.id);
-      setSavedDesignName(design.name); // Set the saved design name
+      setSavedDesignName(design.name);
 
       // Create array of all artwork IDs in order (front, back, neck)
       const allArtworkIds = design.artwork_ids || [];
@@ -218,492 +373,45 @@ export default function Customizer({ product, variants }: CustomizerProps) {
         }
       }
 
-      // Set color/size/variant if available
-      console.log('[LOAD] Design variant_id:', design.variant_id);
-      console.log('[LOAD] Design variant_color:', design.variant_color);
-      console.log('[LOAD] Design variant_size:', design.variant_size);
-      console.log('[LOAD] Design data color/size:', design.design_data?.selectedColor, design.design_data?.selectedSize);
-
-      // PRIORITY: design_data.selectedColor takes precedence over variant_color
-      // This is because Navy (and other UI-only colors) are stored in design_data
-      let colorToSet: string | null = null;
-      let sizeToSet: string | null = null;
-
-      // First: Check design_data for the most recent color selection
-      if (design.design_data?.selectedColor) {
-        console.log('[LOAD] Using color from design_data (highest priority):', design.design_data.selectedColor);
-        colorToSet = design.design_data.selectedColor;
-        sizeToSet = design.design_data.selectedSize || 'M';
-
-        // Try to find a matching variant for this color
-        const variant = variants.find(v => v.color === colorToSet && v.size === sizeToSet);
-        if (variant) {
-          console.log('[LOAD] Found matching variant for design_data color:', variant);
-          setSelectedVariant(variant);
-        } else {
-          console.log('[LOAD] No variant found for color:', colorToSet, '(UI-only color like Navy)');
-        }
-      }
-      // Second: Fall back to variant_id/variant_color if no design_data
-      else if (design.variant_id) {
-        let variant = variants.find(v => v.id === design.variant_id);
-        console.log('[LOAD] Found variant by ID:', variant);
-
-        // If variant not found by ID, try to find by color and size from JOIN
-        if (!variant && design.variant_color && design.variant_size) {
-          console.log('[LOAD] Variant ID not found, trying color/size lookup:', design.variant_color, design.variant_size);
-          variant = variants.find(v => v.color === design.variant_color && v.size === design.variant_size);
-          console.log('[LOAD] Found variant by color/size:', variant);
-        }
-
-        if (variant) {
-          console.log('[LOAD] Setting color/size/variant from variant:', variant.color, variant.size);
-          colorToSet = variant.color;
-          sizeToSet = variant.size;
-          setSelectedVariant(variant);
-        } else if (design.variant_color) {
-          // No variant found, but we have color info from JOIN
-          console.log('[LOAD] No variant found, using color from JOIN:', design.variant_color);
-          colorToSet = design.variant_color;
-          sizeToSet = design.variant_size;
-        }
-      }
-
-      // Apply the color and size
-      if (colorToSet) {
-        setSelectedColor(colorToSet);
-        setSelectedSize(sizeToSet || 'M');
+      // Set size if available
+      if (design.design_data?.selectedSize) {
+        setSelectedSize(design.design_data.selectedSize);
       }
     } catch (error) {
-      console.error('Error loading design:', error);
-      alert('Failed to load design');
+      console.error('[HOODIE LOAD] Error loading design:', error);
     }
   };
 
-  // Price calculation feature - disabled for now
-  // Future: Re-enable when dynamic pricing is needed
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // Check DPI for raster images
-      if (file.type === 'image/png' || file.type === 'image/jpeg') {
-        const arrayBuffer = await file.arrayBuffer();
-        const dpi = await checkImageDPI(arrayBuffer, file.type);
-
-        if (dpi && dpi < 300) {
-          const proceed = window.confirm(
-            `Warning: This image has a DPI of ${dpi}, which is below the required 300 DPI for high-quality DTG printing. The print quality may be poor.\n\nDo you want to upload it anyway?`
-          );
-          if (!proceed) {
-            e.target.value = ''; // Reset file input
-            return;
-          }
-        }
-      }
-
-      // Create a local preview URL immediately for instant feedback
-      const previewUrl = URL.createObjectURL(file);
-
-      // Add artwork to the appropriate view with temporary blob URL
-      const tempArtwork = { url: previewUrl, position: null, assetId: undefined };
-
-      if (view === 'front') {
-        if (frontArtworks.length < 4) {
-          const artworkIndex = frontArtworks.length;
-          setFrontArtworks([...frontArtworks, tempArtwork]);
-
-          // Upload to server and update with permanent URL
-          uploadAPI.uploadFile(file).then((asset) => {
-            setFrontArtworks(prev => {
-              const updated = [...prev];
-              if (updated[artworkIndex]) {
-                updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
-                  position: updated[artworkIndex].position,
-                  assetId: asset.id
-                };
-              }
-              return updated;
-            });
-          }).catch(err => console.error('Upload failed:', err));
-        } else {
-          alert('Maximum 4 artworks allowed on front view');
-          e.target.value = '';
-          return;
-        }
-      } else if (view === 'neck') {
-        if (neckArtwork) {
-          alert('Only 1 artwork allowed on neck view. Remove existing artwork first.');
-          e.target.value = '';
-          return;
-        }
-        setNeckArtwork(tempArtwork);
-
-        // Upload to server and update with permanent URL
-        uploadAPI.uploadFile(file).then((asset) => {
-          setNeckArtwork((prev) => ({
-            url: `http://localhost:3001${asset.file_url}`,
-            position: prev?.position || null,
-            assetId: asset.id
-          }));
-        }).catch(err => console.error('Upload failed:', err));
-      } else if (view === 'back') {
-        if (backArtworks.length < 4) {
-          const artworkIndex = backArtworks.length;
-          setBackArtworks([...backArtworks, tempArtwork]);
-
-          // Upload to server and update with permanent URL
-          uploadAPI.uploadFile(file).then((asset) => {
-            setBackArtworks(prev => {
-              const updated = [...prev];
-              if (updated[artworkIndex]) {
-                updated[artworkIndex] = {
-                  url: `http://localhost:3001${asset.file_url}`,
-                  position: updated[artworkIndex].position,
-                  assetId: asset.id
-                };
-              }
-              return updated;
-            });
-          }).catch(err => console.error('Upload failed:', err));
-        } else {
-          alert('Maximum 4 artworks allowed on back view');
-          e.target.value = '';
-          return;
-        }
-      }
-
-      // Reset file input
-      e.target.value = '';
-    } catch (error) {
-      console.error('File upload failed:', error);
-      alert('Failed to upload file');
-      e.target.value = '';
-    }
-  };
-
-  // Function to check image DPI
-  const checkImageDPI = async (arrayBuffer: ArrayBuffer, mimeType: string): Promise<number | null> => {
-    const view = new DataView(arrayBuffer);
-
-    try {
-      if (mimeType === 'image/png') {
-        // PNG DPI is stored in pHYs chunk
-        let offset = 8; // Skip PNG signature
-
-        while (offset < view.byteLength) {
-          const length = view.getUint32(offset);
-          const type = String.fromCharCode(
-            view.getUint8(offset + 4),
-            view.getUint8(offset + 5),
-            view.getUint8(offset + 6),
-            view.getUint8(offset + 7)
-          );
-
-          if (type === 'pHYs') {
-            const pixelsPerUnitX = view.getUint32(offset + 8);
-            const unit = view.getUint8(offset + 16);
-
-            if (unit === 1) { // meters
-              // Convert pixels per meter to DPI
-              const dpi = Math.round(pixelsPerUnitX / 39.3701);
-              return dpi;
-            }
-          }
-
-          offset += length + 12;
-        }
-      } else if (mimeType === 'image/jpeg') {
-        // JPEG DPI is stored in JFIF or EXIF
-        let offset = 2; // Skip JPEG SOI marker
-
-        while (offset < view.byteLength) {
-          const marker = view.getUint16(offset);
-
-          if (marker === 0xFFE0) { // JFIF APP0
-            const densityUnits = view.getUint8(offset + 11);
-            const xDensity = view.getUint16(offset + 12);
-
-            if (densityUnits === 1) { // DPI
-              return xDensity;
-            } else if (densityUnits === 2) { // dots per cm
-              return Math.round(xDensity * 2.54);
-            }
-            break;
-          }
-
-          const segmentLength = view.getUint16(offset + 2);
-          offset += segmentLength + 2;
-        }
-      }
-    } catch (error) {
-      console.error('Error reading DPI:', error);
-    }
-
-    return null;
-  };
-
-  // Future feature: Add text to design
-  // const handleAddText = () => {
-  //   if (!textInput.trim()) return;
-  //
-  //   const newPlacement: Placement = {
-  //     location: currentPlacement as any,
-  //     x: 5,
-  //     y: 5,
-  //     width: 4,
-  //     height: 2,
-  //     text_element_id: `text-${Date.now()}`,
-  //     colors: [textColor],
-  //   };
-  //
-  //   setPlacements([...placements, newPlacement]);
-  //   setTextInput('');
-  // };
-
-  const handleDownloadDesign = () => {
-    if (canvasRef.current && canvasRef.current.downloadImage) {
-      canvasRef.current.downloadImage();
-    }
-  };
-
-  const handleSaveDesign = async () => {
-    if (!isAuthenticated) {
-      // Redirect to login, then back to this page
-      navigate('/login', { state: { from: window.location.pathname + window.location.search } });
-      return;
-    }
-
-    // If updating existing design, save directly without modal
-    if (loadedDesignId && savedDesignName) {
-      try {
-        await performSaveDesign(savedDesignName);
-        setToastMessage('Design updated successfully!');
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
-      } catch (error) {
-        console.error('Error updating design:', error);
-        alert('Failed to update design');
-      }
-      return;
-    }
-
-    // Otherwise, open the modal for new design
-    setShowSaveModal(true);
-  };
-
-  const performSaveDesign = async (designName: string) => {
-    try {
-      const designData = {
-        front: frontArtworks.map(a => a.position),
-        back: backArtworks.map(a => a.position),
-        neck: neckArtwork ? [neckArtwork.position] : [],
-        // Store color and size in design_data for colors without variants (like Navy)
-        selectedColor: selectedColor,
-        selectedSize: selectedSize || 'M'
-      };
-
-      // Collect all artwork asset IDs from all views
-      const artworkIds: string[] = [
-        ...frontArtworks.filter(a => a.assetId).map(a => a.assetId!),
-        ...backArtworks.filter(a => a.assetId).map(a => a.assetId!),
-        ...(neckArtwork?.assetId ? [neckArtwork.assetId] : [])
-      ];
-
-      // Capture thumbnail
-      let thumbnailUrl = '';
-      if (canvasRef.current && canvasRef.current.getThumbnailBlob) {
-        try {
-          const thumbnailBlob = await canvasRef.current.getThumbnailBlob();
-          if (thumbnailBlob) {
-            // Convert blob to file
-            const thumbnailFile = new File([thumbnailBlob], 'thumbnail.png', { type: 'image/png' });
-            // Upload thumbnail
-            const uploadedAsset = await uploadAPI.uploadFile(thumbnailFile);
-            thumbnailUrl = uploadedAsset.file_url;
-          }
-        } catch (err) {
-          console.error('Failed to capture thumbnail:', err);
-          // Continue without thumbnail
-        }
-      }
-
-      if (loadedDesignId) {
-        // Update existing design
-        // Make sure we have the latest variant based on current color/size
-        // Use 'M' as default size if no size selected
-        const variantSize = selectedSize || 'M';
-        const currentVariant = selectedVariant ||
-          (selectedColor
-            ? variants.find(v => v.color === selectedColor && v.size === variantSize)
-            : null);
-
-        console.log('[SAVE] Updating design with variant:', {
-          variantId: currentVariant?.id,
-          color: selectedColor,
-          size: selectedSize,
-          variant: currentVariant
-        });
-
-        await designAPI.update(loadedDesignId, {
-          name: designName,
-          variantId: currentVariant?.id,
-          designData,
-          artworkIds,
-          thumbnailUrl
-        });
-        setSavedDesignName(designName);
-      } else {
-        // Save new design
-        // Make sure we have the latest variant based on current color/size
-        // Use 'M' as default size if no size selected
-        const variantSize = selectedSize || 'M';
-        const currentVariant = selectedVariant ||
-          (selectedColor
-            ? variants.find(v => v.color === selectedColor && v.size === variantSize)
-            : null);
-
-        console.log('[SAVE] Saving new design with variant:', {
-          variantId: currentVariant?.id,
-          color: selectedColor,
-          size: selectedSize,
-          variant: currentVariant
-        });
-
-        const saved = await designAPI.save({
-          name: designName,
-          productId: product.id,
-          variantId: currentVariant?.id,
-          designData,
-          artworkIds,
-          thumbnailUrl
-        });
-        setLoadedDesignId(saved.id);
-        setSavedDesignName(designName);
-
-        // Track design saved in Google Analytics
-        trackDesignSaved(designName);
-      }
-    } catch (error: any) {
-      console.error('Error saving design:', error);
-      throw error; // Re-throw so the modal can handle it
-    }
-  };
-
-  const handleAddToCart = () => {
-    if (!selectedColor || !selectedSize) {
-      setToastMessage('Please select a color and size');
-      setShowToast(true);
-      return;
-    }
-
-    // Capture mockup image from canvas
-    let mockupUrl;
-    try {
-      if (canvasRef.current && canvasRef.current.captureImage) {
-        mockupUrl = canvasRef.current.captureImage();
-      }
-    } catch (error) {
-      console.error('Error capturing mockup:', error);
-    }
-
-    // Use selected variant or create a temporary one for Navy
-    const variant = selectedVariant || {
-      id: `temp-${selectedColor}-${selectedSize}`,
-      color: selectedColor,
-      size: selectedSize,
-      base_price: 12.98
-    };
-
-    const cartItem = {
-      id: editingCartItemId || `${variant.id}-${Date.now()}`,
-      variantId: variant.id,
-      productTitle: product.title,
-      variantColor: selectedColor,
-      variantSize: selectedSize,
-      quantity,
-      unitPrice: unitCost,
-      customization: {
-        method: selectedMethod || 'screen_print',
-        frontArtworks,
-        backArtworks,
-        neckArtwork,
-      },
-      mockupUrl, // Include the mockup image
-    };
-
-    if (editingCartItemId) {
-      // Update existing cart item
-      updateItem(editingCartItemId, cartItem);
-      setToastMessage('Cart item updated successfully!');
-    } else {
-      // Add new item to cart
-      addItem(cartItem);
-      setToastMessage('Added to cart successfully!');
-    }
-
-    setShowToast(true);
-
-    // Navigate to cart after showing toast
-    setTimeout(() => {
-      navigate('/cart');
-    }, 1500);
-  };
-
-  // const [customizationMode, setCustomizationMode] = useState<'15' | '50'>('15');
-  const [colorSectionOpen, setColorSectionOpen] = useState(true);
-  const [frontArtworkSectionOpen, setFrontArtworkSectionOpen] = useState(false);
-  const [backArtworkSectionOpen, setBackArtworkSectionOpen] = useState(false);
-  const [neckLabelSectionOpen, setNeckLabelSectionOpen] = useState(false);
-
-  // Auto-open appropriate section when view changes
   useEffect(() => {
-    if (view === 'neck') {
-      setNeckLabelSectionOpen(true);
-      setFrontArtworkSectionOpen(false);
-      setBackArtworkSectionOpen(false);
-    } else if (view === 'front') {
-      setFrontArtworkSectionOpen(true);
-      setBackArtworkSectionOpen(false);
-      setNeckLabelSectionOpen(false);
-    } else if (view === 'back') {
-      setBackArtworkSectionOpen(true);
-      setFrontArtworkSectionOpen(false);
-      setNeckLabelSectionOpen(false);
+    const designId = searchParams.get('designId');
+    if (designId && isAuthenticated) {
+      loadDesign(designId);
     }
-  }, [view]);
+  }, [searchParams, isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Custom Compact Header for Customizer */}
+      {/* Header */}
       <div className="border-b border-gray-200 bg-white">
         <div className="relative px-6 py-1.5 flex items-center">
-          {/* Product Title - Left */}
-          <h1 className="text-sm font-bold">
-            {product.title}
-          </h1>
+          <h1 className="text-sm font-bold">Classic Hoodie</h1>
 
-          {/* Raspberry Logo - Center */}
           <Link to="/" className="absolute left-1/2 -translate-x-1/2 text-lg font-bold hover:text-gray-600 transition-colors">
             Raspberry
           </Link>
 
-          {/* Save Design Button and Price - Right */}
           <div className="ml-auto flex items-center gap-4">
             <button
               onClick={handleDownloadDesign}
-              disabled={!currentArtwork}
+              disabled={frontArtworks.length === 0 && backArtworks.length === 0 && !neckArtwork}
               title="Download Design"
               className={`p-2 rounded-md transition-colors ${
-                currentArtwork
-                  ? 'text-gray-700 hover:bg-gray-100'
-                  : 'text-gray-300 cursor-not-allowed'
+                (frontArtworks.length > 0 || backArtworks.length > 0 || neckArtwork)
+                  ? 'hover:bg-gray-100'
+                  : 'opacity-30 cursor-not-allowed'
               }`}
             >
-              <ArrowDownToLine size={18} />
+              <ArrowDownToLine size={16} />
             </button>
             <button
               onClick={handleSaveDesign}
@@ -713,55 +421,21 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               {loadedDesignId ? 'Update Design' : 'Save Design'}
             </button>
             <div className="text-sm font-normal">
-              from ${(12.98).toFixed(2)}
+              from ${(35.99).toFixed(2)}
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_400px] h-[calc(100vh-40px)]">
-        {/* Left - Canvas Area */}
+        {/* Canvas Area */}
         <div className="bg-white flex flex-col relative h-full overflow-hidden">
-          {/* Interactive Canvas Preview */}
-          <div className={`absolute inset-0 flex items-center justify-center ${view === 'neck' ? 'pt-0 pb-0 px-0' : 'pt-2 pb-16 px-6'}`}>
-            {product.slug === 'classic-hoodie' ? (
-              <HoodieCanvas
-                ref={canvasRef}
-                artworks={getCurrentArtworks()}
-                view={view}
-                onArtworkPositionChange={(pos, index) => {
-                  if (view === 'front') {
-                    const updated = [...frontArtworks];
-                    updated[index] = { ...updated[index], position: pos };
-                    setFrontArtworks(updated);
-                  } else if (view === 'neck' && neckArtwork) {
-                    setNeckArtwork({ ...neckArtwork, position: pos });
-                  } else if (view === 'back') {
-                    const updated = [...backArtworks];
-                    updated[index] = { ...updated[index], position: pos };
-                    setBackArtworks(updated);
-                  }
-                }}
-                onArtworkDelete={(index) => {
-                  if (view === 'front') {
-                    const updated = frontArtworks.filter((_, i) => i !== index);
-                    setFrontArtworks(updated);
-                  } else if (view === 'neck') {
-                    setNeckArtwork(null);
-                  } else if (view === 'back') {
-                    const updated = backArtworks.filter((_, i) => i !== index);
-                    setBackArtworks(updated);
-                  }
-                }}
-              />
-            ) : (
-              <TShirtCanvas
-                ref={canvasRef}
-                tshirtColor={selectedColor}
-                artworks={getCurrentArtworks()}
-                view={view}
-                onArtworkPositionChange={(pos, index) => {
-                // Save position to current view's artwork at specific index
+          <div className="absolute inset-0 flex items-center justify-center pt-2 pb-16 px-6">
+            <HoodieCanvas
+              ref={canvasRef}
+              artworks={getCurrentArtworks()}
+              view={view}
+              onArtworkPositionChange={(pos, index) => {
                 if (view === 'front') {
                   const updated = [...frontArtworks];
                   updated[index] = { ...updated[index], position: pos };
@@ -775,29 +449,23 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                 }
               }}
               onArtworkDelete={(index) => {
-                // Delete artwork from current view
                 if (view === 'front') {
-                  const updated = frontArtworks.filter((_, i) => i !== index);
-                  setFrontArtworks(updated);
+                  setFrontArtworks(frontArtworks.filter((_, i) => i !== index));
                 } else if (view === 'neck') {
                   setNeckArtwork(null);
                 } else if (view === 'back') {
-                  const updated = backArtworks.filter((_, i) => i !== index);
-                  setBackArtworks(updated);
+                  setBackArtworks(backArtworks.filter((_, i) => i !== index));
                 }
               }}
             />
-            )}
           </div>
 
-          {/* View Switcher - Minimal */}
+          {/* View Switcher */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-2 py-2 flex gap-1">
             <button
               onClick={() => setView('front')}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'front'
-                  ? 'bg-black text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                view === 'front' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               Front
@@ -805,9 +473,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             <button
               onClick={() => setView('back')}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'back'
-                  ? 'bg-black text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                view === 'back' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               Back
@@ -815,9 +481,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
             <button
               onClick={() => setView('neck')}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'neck'
-                  ? 'bg-black text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                view === 'neck' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               Neck
@@ -841,7 +505,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                     <span
                       className="w-5 h-5 rounded-full border border-gray-300"
                       style={{
-                        backgroundColor: selectedColor === 'White' ? '#FFFFFF' : selectedColor === 'Black' ? '#000000' : selectedColor.toLowerCase()
+                        backgroundColor: selectedColor === 'Black' ? '#000000' : selectedColor.toLowerCase()
                       }}
                     ></span>
                   )}
@@ -868,11 +532,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                         <div
                           className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
                           style={{
-                            backgroundColor:
-                              color === 'White' ? '#FFFFFF' :
-                              color === 'Black' ? '#000000' :
-                              color === 'Navy' ? '#001f3f' :
-                              color.toLowerCase()
+                            backgroundColor: color === 'Black' ? '#000000' : color.toLowerCase()
                           }}
                         ></div>
                         <span className="text-xs font-medium">{color}</span>
@@ -903,10 +563,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               {frontArtworkSectionOpen && (
                 <div className="space-y-4">
                   {frontArtworks.length < 4 && (
-                    <div
-                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
-                      onClick={() => setView('front')}
-                    >
+                    <div className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer" onClick={() => setView('front')}>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/svg+xml,application/pdf"
@@ -920,15 +577,12 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                       />
                       <label htmlFor="front-artwork-upload" className="cursor-pointer">
                         <Upload className="mx-auto mb-2 text-gray-300" size={28} />
-                        <p className="text-xs text-gray-600 font-medium">
-                          Upload front artwork (up to 4)
-                        </p>
+                        <p className="text-xs text-gray-600 font-medium">Upload front artwork (up to 4)</p>
                         <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
                       </label>
                     </div>
                   )}
 
-                  {/* Display uploaded front artworks */}
                   {frontArtworks.map((artwork, index) => (
                     <div key={index} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex items-start justify-between mb-2">
@@ -942,9 +596,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                           </div>
                         </div>
                         <button
-                          onClick={() => {
-                            setFrontArtworks(frontArtworks.filter((_, i) => i !== index));
-                          }}
+                          onClick={() => setFrontArtworks(frontArtworks.filter((_, i) => i !== index))}
                           className="text-xs text-red-600 hover:text-red-700"
                         >
                           Remove
@@ -976,10 +628,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               {backArtworkSectionOpen && (
                 <div className="space-y-4">
                   {backArtworks.length < 4 && (
-                    <div
-                      className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer"
-                      onClick={() => setView('back')}
-                    >
+                    <div className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center hover:border-gray-300 transition-colors cursor-pointer" onClick={() => setView('back')}>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/svg+xml,application/pdf"
@@ -993,15 +642,12 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                       />
                       <label htmlFor="back-artwork-upload" className="cursor-pointer">
                         <Upload className="mx-auto mb-2 text-gray-300" size={28} />
-                        <p className="text-xs text-gray-600 font-medium">
-                          Upload back artwork (up to 4)
-                        </p>
+                        <p className="text-xs text-gray-600 font-medium">Upload back artwork (up to 4)</p>
                         <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG or PDF</p>
                       </label>
                     </div>
                   )}
 
-                  {/* Display uploaded back artworks */}
                   {backArtworks.map((artwork, index) => (
                     <div key={index} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex items-start justify-between mb-2">
@@ -1015,9 +661,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                           </div>
                         </div>
                         <button
-                          onClick={() => {
-                            setBackArtworks(backArtworks.filter((_, i) => i !== index));
-                          }}
+                          onClick={() => setBackArtworks(backArtworks.filter((_, i) => i !== index))}
                           className="text-xs text-red-600 hover:text-red-700"
                         >
                           Remove
@@ -1058,7 +702,26 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                         accept="image/png,image/jpeg,image/svg+xml,application/pdf"
                         onChange={(e) => {
                           setView('neck');
-                          handleFileUpload(e);
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = async (event) => {
+                              const imageUrl = event.target?.result as string;
+                              try {
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                const result = await uploadAPI.uploadFile(formData);
+                                setNeckArtwork({
+                                  url: imageUrl,
+                                  position: { x: 0, y: 0, width: 100, height: 100, rotation: 0 },
+                                  assetId: result.assetId
+                                });
+                              } catch (error) {
+                                console.error('Upload failed:', error);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
                         }}
                         className="hidden"
                         id="neck-label-upload"
@@ -1120,9 +783,9 @@ export default function Customizer({ product, variants }: CustomizerProps) {
               </div>
             </div>
 
-            {/* Quantity, Price, Delivery */}
+            {/* Quantity, Price */}
             <div className="border-t border-gray-200 pt-5 pb-4">
-              <div className={`grid ${quantity >= 2 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
+              <div className={`grid ${quantity >= 2 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
                 <div>
                   <label className="block text-xs text-gray-500 mb-2">Quantity</label>
                   <input
@@ -1147,21 +810,17 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                     </div>
                   </div>
                 )}
-                <div>
-                  <label className="block text-xs text-gray-500 mb-2">Delivery</label>
-                  <div className="text-xs font-semibold">4 Nov</div>
-                </div>
               </div>
             </div>
 
-            {/* Confirm Button */}
+            {/* Add to Cart Button */}
             <div className="pt-4">
               <button
                 onClick={handleAddToCart}
-                disabled={!selectedColor || !selectedSize}
+                disabled={!selectedSize}
                 className="w-full py-3 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {editingCartItemId ? 'Update Cart' : 'Add to Cart'}
+                Add to Cart
               </button>
             </div>
           </div>
@@ -1181,7 +840,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
       {showToast && (
         <Toast
           message={toastMessage}
-          type="success"
+          isVisible={showToast}
           onClose={() => setShowToast(false)}
         />
       )}

@@ -12,6 +12,17 @@ export default function Products() {
     // Load mock data immediately for instant display
     const mockProducts = [
       {
+        id: '2',
+        title: 'Classic Hoodie',
+        slug: 'hoodie',
+        description: 'Premium heavyweight hoodie',
+        images: ['/uploads/hoodie-black-front.png'],
+        status: 'active' as const,
+        variants: [
+          { id: '2', product_id: '2', color: 'Black', size: 'M', sku: 'HOODIE-BLK-M', base_price: 35.99, stock_level: 100 }
+        ]
+      },
+      {
         id: '1',
         title: 'Classic Cotton T-Shirt',
         slug: 'classic-tee',
@@ -81,7 +92,7 @@ export default function Products() {
             {products.map((product) => (
               <Link
                 key={product.id}
-                to={`/products/${product.slug}`}
+                to={product.slug === 'hoodie' ? '/hoodie' : `/products/${product.slug}`}
                 className="group block"
               >
                 {/* Product Image */}

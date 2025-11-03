@@ -182,7 +182,7 @@ export default function Dashboard() {
                   </p>
                   <div className="mt-4 flex gap-2">
                     <Link
-                      to={`/products/${design.product_slug}?designId=${design.id}`}
+                      to={design.product_slug === 'hoodie' ? `/hoodie?designId=${design.id}` : `/products/${design.product_slug}?designId=${design.id}`}
                       className="flex-1 text-center px-3 py-2 bg-black text-white text-sm rounded hover:bg-gray-800"
                     >
                       Edit

@@ -13,19 +13,19 @@ export default function Layout({ children }: LayoutProps) {
   const { isAuthenticated, user } = useAuth();
 
   // Hide header on product detail/customizer pages
-  const hideHeader = location.pathname.startsWith('/products/') && location.pathname !== '/products';
+  const hideHeader = (location.pathname.startsWith('/products/') && location.pathname !== '/products') || location.pathname === '/hoodie';
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header - Assembly style */}
       {!hideHeader && (
         <header className="bg-white sticky top-0 z-50">
-        <nav className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+        <nav className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between relative">
           <Link to="/" className="text-2xl font-bold text-gray-900">
             Raspberry
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link to="/products" className="text-sm text-gray-900 hover:text-gray-600 transition-colors">
               Products
             </Link>
@@ -55,10 +55,9 @@ export default function Layout({ children }: LayoutProps) {
             {isAuthenticated ? (
               <Link
                 to="/dashboard"
-                className="flex items-center gap-2 text-sm text-gray-900 hover:text-gray-600 transition-colors"
+                className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium hover:bg-gray-700 transition-colors"
               >
-                <User size={18} />
-                <span className="hidden sm:inline">{user?.name}</span>
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
               </Link>
             ) : (
               <Link

@@ -21,6 +21,17 @@ export default function Home() {
         variants: [
           { id: '1', product_id: '1', color: 'White', size: 'M', sku: 'TEE-WHT-M', base_price: 12.99, stock_level: 100 }
         ]
+      },
+      {
+        id: '2',
+        title: 'Classic Hoodie',
+        slug: 'hoodie',
+        description: 'Premium heavyweight hoodie',
+        images: ['/uploads/hoodie-black-front.png'],
+        status: 'active' as const,
+        variants: [
+          { id: '2', product_id: '2', color: 'Black', size: 'M', sku: 'HOODIE-BLK-M', base_price: 35.99, stock_level: 100 }
+        ]
       }
     ];
 
@@ -172,7 +183,7 @@ export default function Home() {
               {products.slice(0, 5).map((product) => (
                 <Link
                   key={product.id}
-                  to={`/products/${product.slug}`}
+                  to={product.slug === 'hoodie' ? '/hoodie' : `/products/${product.slug}`}
                   className="group block"
                 >
                   {/* Product Image */}
