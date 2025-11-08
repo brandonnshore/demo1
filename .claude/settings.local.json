@@ -91,7 +91,15 @@
       "Bash(npx tsc --noEmit)",
       "Read(//private/tmp/**)",
       "Bash(pkill -9 node)",
-      "Bash(curl -sI https://www.raspberrymerch.com)"
+      "Bash(curl -sI https://www.raspberrymerch.com)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_uHXQQt/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_8JRuDQ/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_Qct1Gp/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_SRdK05/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_EYIj19/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_RkwEBT/**)",
+      "Read(//var/folders/75/3t9f2p5917935lp67t6m7n3h0000gn/T/TemporaryItems/NSIRD_screencaptureui_jNFdbR/**)",
+      "Read(//Users/brandonshore/**)"
     ],
     "deny": [],
     "ask": []
