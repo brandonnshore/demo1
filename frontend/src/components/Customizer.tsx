@@ -20,6 +20,28 @@ interface CustomizerProps {
   variants: Variant[];
 }
 
+// Helper function to calculate estimated delivery date
+const getEstimatedDeliveryDate = (): string => {
+  const today = new Date();
+  let businessDaysToAdd = 7; // 7 business days estimate
+  let currentDate = new Date(today);
+
+  while (businessDaysToAdd > 0) {
+    currentDate.setDate(currentDate.getDate() + 1);
+    // Skip weekends (0 = Sunday, 6 = Saturday)
+    if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+      businessDaysToAdd--;
+    }
+  }
+
+  // Format as "D MMM" (e.g., "4 Nov")
+  const day = currentDate.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[currentDate.getMonth()];
+
+  return `${day} ${month}`;
+};
+
 export default function Customizer({ product, variants }: CustomizerProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
@@ -1022,7 +1044,7 @@ export default function Customizer({ product, variants }: CustomizerProps) {
                 )}
                 <div>
                   <label className="block text-xs text-gray-500 mb-2">Delivery</label>
-                  <div className="text-xs font-semibold">4 Nov</div>
+                  <div className="text-xs font-semibold">{getEstimatedDeliveryDate()}</div>
                 </div>
               </div>
             </div>
